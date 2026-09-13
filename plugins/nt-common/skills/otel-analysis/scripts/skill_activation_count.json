@@ -1,0 +1,9 @@
+{
+  "size": 0,
+  "query": { "term": { "event_name": "skill_activated" } },
+  "aggs": {
+    "by_skill": {
+      "terms": { "field": "attributes.skill.name.keyword", "size": 50 }
+    }
+  }
+}

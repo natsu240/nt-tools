@@ -1,0 +1,10 @@
+[Unit]
+Description=nt-code-review-cache-cleanup を1日ごとに起動する
+
+[Timer]
+OnStartupSec=0
+OnUnitActiveSec=86400
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

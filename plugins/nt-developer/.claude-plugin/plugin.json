@@ -1,0 +1,17 @@
+{
+  "name": "nt-developer",
+  "description": "エンジニアの開発ワークフロー全般をまとめた plugin。Git・コードレビュー・コードスタイル規約・実装計画管理等を提供する。",
+  "version": "1.0.0",
+  "author": {
+    "name": "natsu240"
+  },
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "code-review",
+    "code-style",
+    "guardrails",
+    "workflow",
+    "plan-doc"
+  ]
+}

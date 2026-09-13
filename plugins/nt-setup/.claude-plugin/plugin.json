@@ -1,0 +1,16 @@
+{
+  "name": "nt-setup",
+  "description": "各種セットアップ専用 plugin。Claude Code 自身の環境構築・監視・通知の自動化を対話式にセットアップする。",
+  "version": "1.0.0",
+  "author": {
+    "name": "natsu240"
+  },
+  "license": "MIT",
+  "keywords": [
+    "setup",
+    "otel",
+    "statusline",
+    "launchd",
+    "systemd"
+  ]
+}

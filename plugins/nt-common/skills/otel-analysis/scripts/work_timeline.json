@@ -1,0 +1,13 @@
+{
+  "size": 50,
+  "query": { "term": { "event_name": "user_prompt" } },
+  "sort": [{ "@timestamp": "desc" }],
+  "runtime_mappings": {
+    "ts_jst": {
+      "type": "keyword",
+      "script": "emit(DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm\").withZone(ZoneId.of(\"Asia/Tokyo\")).format(doc['@timestamp'].value))"
+    }
+  },
+  "fields": ["ts_jst", "attributes.session.id", "attributes.prompt"],
+  "_source": false
+}

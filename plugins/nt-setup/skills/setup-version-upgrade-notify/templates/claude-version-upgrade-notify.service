@@ -1,0 +1,8 @@
+[Unit]
+Description=Claude Code の新バージョンを Discord へ通知する
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/.claude/scripts/version-upgrade-notify.sh
+StandardOutput=append:%h/.claude/scripts/version-upgrade-notify-stdout.log
+StandardError=append:%h/.claude/scripts/version-upgrade-notify-stderr.log

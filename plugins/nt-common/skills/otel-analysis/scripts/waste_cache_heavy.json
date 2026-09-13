@@ -1,0 +1,29 @@
+{
+  "size": 20,
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "event_name": "api_request" } },
+        { "range": { "attributes.output_tokens": { "lt": 50 } } },
+        { "range": { "attributes.cache_read_tokens": { "gt": 50000 } } }
+      ]
+    }
+  },
+  "sort": [{ "attributes.cache_read_tokens": "desc" }],
+  "runtime_mappings": {
+    "ts_jst": {
+      "type": "keyword",
+      "script": "emit(DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm\").withZone(ZoneId.of(\"Asia/Tokyo\")).format(doc['@timestamp'].value))"
+    }
+  },
+  "fields": [
+    "ts_jst",
+    "attributes.query_source",
+    "attributes.session.id",
+    "attributes.prompt.id",
+    "attributes.output_tokens",
+    "attributes.cache_read_tokens",
+    "attributes.cost_usd"
+  ],
+  "_source": false
+}

@@ -1,0 +1,29 @@
+#!/bin/bash
+# git push 前に、skill / hook / workflow の検査とテストをローカルで実行する。
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+# git は hook に GIT_DIR を渡し、worktree からの push では絶対パスになるため、テストが一時リポジトリへ向けた `git -C <一時ディレクトリ>` までこのリポジトリを操作対象にしてしまう（実際に main の全ファイルが消え、リモートまで書き換わった）。
+# テスト側にも同じ unset を入れているが、テストを足すたびに書き忘れる余地を消す。
+unset GIT_DIR GIT_WORK_TREE
+
+echo "push前チェックを実行します..."
+
+bash scripts/validate-skills.sh
+node scripts/validate-workflow-scripts.mjs
+# validate-skills.sh のクォート漏れ検知とは別に、YAML として本当にパース不能な frontmatter を検出する
+for plugin_dir in plugins/*/; do
+  claude plugin validate "$plugin_dir" --strict
+done
+for test_file in plugins/*/tests/*.test.js; do
+  [ -f "$test_file" ] || continue
+  node "$test_file"
+done
+for test_file in plugins/*/tests/*.test.sh; do
+  [ -f "$test_file" ] || continue
+  bash "$test_file"
+done
+
+echo "push前チェック: 全部通過"

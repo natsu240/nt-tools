@@ -1,0 +1,41 @@
+#!/bin/bash
+# plugins/ 配下を触ったコミットで plugin.json の version 更新を忘れる事故を機械的に防ぐ
+# （README.md「バージョン管理」参照）。
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+staged_files="$(git diff --cached --name-only)"
+
+touched_plugins="$(echo "$staged_files" | grep -oE '^plugins/[^/]+/' | sed -E 's#^plugins/##; s#/$##' | sort -u || true)"
+
+if [ -z "$touched_plugins" ]; then
+  exit 0
+fi
+
+missing=0
+
+while IFS= read -r plugin; do
+  [ -z "$plugin" ] && continue
+  plugin_json="plugins/$plugin/.claude-plugin/plugin.json"
+
+  if ! echo "$staged_files" | grep -qF "$plugin_json"; then
+    echo "エラー: plugins/$plugin/ を変更していますが $plugin_json がステージされていません（version 更新を忘れていませんか）" >&2
+    missing=1
+    continue
+  fi
+
+  if ! git diff --cached -- "$plugin_json" | grep -qE '^[+-][[:space:]]*"version"'; then
+    echo "エラー: $plugin_json はステージされていますが version フィールドが変わっていません（plugins/$plugin/ の変更に対する version 更新を忘れていませんか）" >&2
+    missing=1
+  fi
+done <<< "$touched_plugins"
+
+if [ "$missing" -ne 0 ]; then
+  echo "" >&2
+  echo "README.md「バージョン管理」のとおり、plugins/ 配下を触った場合は該当プラグインの plugin.json の version を同じコミットに含めてください（原則パッチ刻み）。" >&2
+  exit 1
+fi
+
+exit 0

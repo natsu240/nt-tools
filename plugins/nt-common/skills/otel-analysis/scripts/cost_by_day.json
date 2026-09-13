@@ -1,0 +1,18 @@
+{
+  "size": 0,
+  "query": { "term": { "event_name": "api_request" } },
+  "aggs": {
+    "by_day": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "calendar_interval": "day",
+        "time_zone": "Asia/Tokyo",
+        "format": "yyyy-MM-dd",
+        "order": { "_key": "desc" }
+      },
+      "aggs": {
+        "total_cost": { "sum": { "field": "attributes.cost_usd" } }
+      }
+    }
+  }
+}

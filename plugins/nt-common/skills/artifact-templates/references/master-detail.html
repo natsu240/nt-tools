@@ -1,0 +1,297 @@
+<title>{{PAGE_TITLE}}</title>
+<style>
+  :root {
+    --bg: #f4f5f8;
+    --surface: #ffffff;
+    --surface-alt: #eceef3;
+    --border: #d7dae3;
+    --text: #1a1d27;
+    --text-muted: #5b6072;
+    --text-faint: #8a8fa3;
+    --accent: #33459c;
+    --accent-soft: #e7eafb;
+    --shadow: 0 1px 2px rgba(20, 22, 30, 0.06), 0 8px 24px rgba(20, 22, 30, 0.05);
+
+    /* 判定バッジの4値。名前・数は用途に合わせて増減してよい */
+    --v1: #1f7a4d; --v1-bg: #e2f5ea; --v1-border: #bfe6cf; /* 例: 一致 */
+    --v2: #93650d; --v2-bg: #fbf1de; --v2-border: #f0dba8; /* 例: 意図的な差 */
+    --v3: #b8342a; --v3-bg: #fbe8e6; --v3-border: #f1c3bd; /* 例: 要確認 */
+    --v4: #5c6178; --v4-bg: #eef0f4; --v4-border: #d9dce8; /* 例: 参考 */
+
+    /* 比較対象2システムのバッジ色。3つ以上の比較には向かない（2カラム固定のレイアウト） */
+    --tag-a: #7a5b17; --tag-a-bg: #f7edd6;
+    --tag-b: #234a91; --tag-b-bg: #e4eafb;
+  }
+
+  /* このページは常時ライト固定（ダーク分岐は意図的に持たない） */
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+    font-feature-settings: "palt";
+    line-height: 1.6;
+  }
+
+  .page { max-width: 1700px; margin: 0 auto; padding: 32px 28px 60px; }
+
+  header.hero { margin-bottom: 24px; }
+  header.hero h1 { font-size: 25px; font-weight: 700; margin: 0 0 6px; text-wrap: balance; }
+  header.hero p.lede { margin: 0; color: var(--text-muted); font-size: 14.5px; font-weight: 500; }
+
+  /* データセットを分けるタブが要るときはコメントを外して使え（.tab-bar / .tab のスタイル）
+  .tab-bar { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tab {
+    padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-muted); font-size: 13.5px; font-weight: 700; cursor: pointer; appearance: none; font-family: inherit;
+  }
+  .tab.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  */
+
+  .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .summary-card {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 4px solid var(--card-accent, var(--border));
+    border-radius: 10px; padding: 10px 12px; box-shadow: var(--shadow);
+    cursor: pointer; text-align: left; appearance: none; font: inherit; color: inherit;
+  }
+  .summary-card:hover { background: var(--surface-alt); }
+  .summary-card.active { background: var(--accent-soft); border-color: var(--accent); }
+  .summary-card .num { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--card-accent, var(--text)); min-width: 2ch; }
+  .summary-card .label { font-size: 12.5px; font-weight: 700; color: var(--text-muted); line-height: 1.25; }
+
+  .main-layout { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 880px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .list-panel, .detail-panel { position: static !important; }
+  }
+
+  .list-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; position: sticky; top: 16px;
+  }
+  .search-box { padding: 12px; border-bottom: 1px solid var(--border); }
+  .search-box input[type="search"] {
+    width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-alt); color: var(--text); font-size: 14.5px; font-weight: 500;
+  }
+  .list-meta { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 12.5px; font-weight: 700; color: var(--text-faint); border-bottom: 1px solid var(--border); }
+  .list-meta .reset-link { cursor: pointer; color: var(--accent); }
+  .item-list { flex: 1; }
+  .list-item {
+    display: block; width: 100%; text-align: left; appearance: none; background: none; border: none; font: inherit; color: inherit;
+    padding: 10px 12px; border-bottom: 1px solid var(--border); border-left: 3px solid var(--row-accent, transparent); cursor: pointer;
+  }
+  .list-item:hover { background: var(--surface-alt); }
+  .list-item.active { background: var(--accent-soft); }
+  .list-item .li-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .list-item .li-name { font-weight: 700; font-size: 14px; text-wrap: balance; }
+  .list-item .li-reason { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-top: 3px; }
+  .empty-state { padding: 40px 16px; text-align: center; color: var(--text-faint); font-size: 14px; font-weight: 500; }
+
+  /* 判定4値ごとのアクセント色。v1〜v4はSKILL.mdの選び分けと揃えて増減してよい */
+  .k-v1 { --row-accent: var(--v1); --pill-bg: var(--v1-bg); --pill-fg: var(--v1); --pill-border: var(--v1-border); }
+  .k-v2 { --row-accent: var(--v2); --pill-bg: var(--v2-bg); --pill-fg: var(--v2); --pill-border: var(--v2-border); }
+  .k-v3 { --row-accent: var(--v3); --pill-bg: var(--v3-bg); --pill-fg: var(--v3); --pill-border: var(--v3-border); }
+  .k-v4 { --row-accent: var(--v4); --pill-bg: var(--v4-bg); --pill-fg: var(--v4); --pill-border: var(--v4-border); }
+
+  .detail-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow);
+    padding: 24px 28px; position: sticky; top: 16px;
+  }
+  .detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .detail-head h2 { margin: 0; font-size: 20px; font-weight: 700; text-wrap: balance; }
+
+  .verdict-pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px;
+    font-size: 13.5px; font-weight: 700; background: var(--pill-bg); color: var(--pill-fg); border: 1px solid var(--pill-border);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .verdict-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pill-fg); flex-shrink: 0; }
+
+  .verdict-reason-box {
+    padding: 12px 14px; border-radius: 8px; background: var(--pill-bg); border: 1px solid var(--pill-border);
+    color: var(--text); font-size: 14px; font-weight: 500; line-height: 1.65; margin-bottom: 20px;
+  }
+
+  .field-section { margin-bottom: 20px; }
+  .field-section:last-child { margin-bottom: 0; }
+  .field-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+
+  /* 決め手のブロック: 説明が長い項目でも比較対象を左右2カラムに分離して見せる */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-col { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface-alt); font-size: 14px; font-weight: 600; line-height: 1.6; }
+  .compare-col .system-tag { display: block; width: fit-content; font-size: 11.5px; font-weight: 700; padding: 1px 7px; border-radius: 5px; margin-bottom: 8px; }
+  .compare-col.a .system-tag { background: var(--tag-a-bg); color: var(--tag-a); }
+  .compare-col.b .system-tag { background: var(--tag-b-bg); color: var(--tag-b); }
+</style>
+
+<div class="page">
+  <header class="hero">
+    <h1>{{PAGE_TITLE}}</h1>
+    <p class="lede">{{何と何をどういう単位で突き合わせた資料かを1〜2文で}}</p>
+  </header>
+
+  <!-- データセットを分けるタブが要るときはコメントを外して使え。data-tab の値はDATA側の判定条件に対応させる
+  <div class="tab-bar" id="tabBar">
+    <button class="tab active" data-tab="all">全て</button>
+    <button class="tab" data-tab="example">{{タブ名}}</button>
+  </div>
+  -->
+
+  <div class="summary-row" id="summaryRow"></div>
+
+  <div class="main-layout">
+    <div class="list-panel">
+      <div class="search-box">
+        <input type="search" id="searchInput" placeholder="{{検索対象の名前}}で検索" />
+      </div>
+      <div class="list-meta">
+        <span id="resultCount"></span>
+        <span class="reset-link" id="resetChip">絞り込み解除</span>
+      </div>
+      <div class="item-list" id="itemList"></div>
+      <div class="empty-state" id="emptyState" style="display:none;">条件に一致する項目がありません</div>
+    </div>
+
+    <div class="detail-panel" id="detailPanel"></div>
+  </div>
+</div>
+
+<script>
+  // DATA の1件が1項目。verdictKind は v1〜v4 の4値固定（SKILL.mdの選び分けと揃える。不要なら減らしてよい）
+  // a / b が比較対象の左右2カラム。label がバッジの文字、body がそのまま innerHTML される
+  const DATA = [
+    // {
+    //   itemName: "サンプル項目名",
+    //   a: { label: "旧システム", body: "説明が長くなってもここに書く" },
+    //   b: { label: "新システム", body: "同上" },
+    //   verdictKind: "v3",
+    //   verdictLabel: "要確認",
+    //   verdictReason: "何が違うのか、なぜ要確認なのかを1〜2文で",
+    // },
+  ];
+
+  const SUMMARY_DEFS = [
+    { key: "v1", label: "一致", accentVar: "--v1" },
+    { key: "v2", label: "意図的な差", accentVar: "--v2" },
+    { key: "v3", label: "要確認", accentVar: "--v3" },
+    { key: "v4", label: "参考", accentVar: "--v4" },
+  ];
+
+  // 最も注意を向けたい判定値を初期表示にしろ。全件表示(null)を既定にするな（例: 要確認="v3"）
+  let activeFilter = "v3";
+  let activeIndex = null;
+  let searchTerm = "";
+  // タブでデータセットを分けるときは activeTab を有効化し、filteredIndexes() に1条件足せ
+  // let activeTab = "all";
+
+  function filteredIndexes() {
+    return DATA
+      .map((d, i) => i)
+      .filter((i) => {
+        const d = DATA[i];
+        // if (activeTab !== "all" && d.tabKey !== activeTab) return false;
+        if (activeFilter && d.verdictKind !== activeFilter) return false;
+        if (searchTerm && !d.itemName.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        return true;
+      });
+  }
+
+  function renderSummary() {
+    const row = document.getElementById("summaryRow");
+    row.innerHTML = SUMMARY_DEFS.map((def) => {
+      const count = DATA.filter((d) => d.verdictKind === def.key).length;
+      const active = activeFilter === def.key ? "active" : "";
+      return `<button class="summary-card ${active}" style="--card-accent: var(${def.accentVar})" data-filter="${def.key}">
+        <span class="num">${count}</span><span class="label">${def.label}</span>
+      </button>`;
+    }).join("");
+    row.querySelectorAll(".summary-card").forEach((el) => {
+      el.addEventListener("click", () => {
+        const key = el.dataset.filter;
+        activeFilter = activeFilter === key ? null : key;
+        renderAll();
+      });
+    });
+  }
+
+  function renderList() {
+    const indexes = filteredIndexes();
+    document.getElementById("itemList").innerHTML = indexes
+      .map((i) => {
+        const d = DATA[i];
+        const active = i === activeIndex ? "active" : "";
+        return `<button class="list-item k-${d.verdictKind} ${active}" data-idx="${i}">
+          <div class="li-top"><span class="li-name">${d.itemName}</span></div>
+          <div class="li-reason">${d.verdictReason ?? ""}</div>
+        </button>`;
+      })
+      .join("");
+    document.getElementById("resultCount").textContent = `${indexes.length} / ${DATA.length} 件`;
+    document.getElementById("emptyState").style.display = indexes.length ? "none" : "block";
+    document.getElementById("itemList").querySelectorAll(".list-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        activeIndex = Number(el.dataset.idx);
+        renderList();
+        renderDetail();
+      });
+    });
+  }
+
+  function renderDetail() {
+    const panel = document.getElementById("detailPanel");
+    const indexes = filteredIndexes();
+    const idx = activeIndex !== null && indexes.includes(activeIndex) ? activeIndex : indexes[0];
+    const d = idx !== undefined ? DATA[idx] : null;
+    if (!d) {
+      panel.innerHTML = "";
+      return;
+    }
+    panel.innerHTML = `
+      <div class="detail-head">
+        <h2>${d.itemName}</h2>
+        <span class="verdict-pill k-${d.verdictKind}">${d.verdictLabel}</span>
+      </div>
+      <div class="verdict-reason-box k-${d.verdictKind}">${d.verdictReason ?? ""}</div>
+      <div class="field-section">
+        <div class="field-label">比較</div>
+        <div class="compare-grid">
+          <div class="compare-col a"><span class="system-tag">${d.a?.label ?? "A"}</span>${d.a?.body ?? ""}</div>
+          <div class="compare-col b"><span class="system-tag">${d.b?.label ?? "B"}</span>${d.b?.body ?? ""}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderAll() {
+    renderSummary();
+    renderList();
+    renderDetail();
+  }
+
+  document.getElementById("searchInput").addEventListener("input", (e) => {
+    searchTerm = e.target.value;
+    renderAll();
+  });
+  document.getElementById("resetChip").addEventListener("click", () => {
+    activeFilter = null;
+    searchTerm = "";
+    document.getElementById("searchInput").value = "";
+    renderAll();
+  });
+  // タブを有効化したらこれも有効化しろ
+  // document.querySelectorAll("#tabBar .tab").forEach((el) => {
+  //   el.addEventListener("click", () => {
+  //     activeTab = el.dataset.tab;
+  //     document.querySelectorAll("#tabBar .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === activeTab));
+  //     renderAll();
+  //   });
+  // });
+
+  renderAll();
+</script>

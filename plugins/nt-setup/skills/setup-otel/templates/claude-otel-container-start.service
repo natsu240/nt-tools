@@ -1,0 +1,18 @@
+[Unit]
+Description=Claude Code OTel stack (Collector / Elasticsearch / Kibana) をログイン時に起動する
+# Docker のソケットが用意されてから起動する。docker.service は system 側のユニットなので
+# user unit からは Requires= で束縛できない。順序指定だけに留める。
+After=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# 起動しっぱなしのプロセスではなく compose up -d を1回叩くだけなので、
+# 完了後も「起動済み」として扱わせる（そうしないと再実行の判定ができない）。
+RemainAfterExit=yes
+ExecStart=/bin/bash %h/.claude/otel/start-compose.sh
+StandardOutput=append:%h/.claude/otel/container-start-stdout.log
+StandardError=append:%h/.claude/otel/container-start-stderr.log
+
+[Install]
+WantedBy=default.target

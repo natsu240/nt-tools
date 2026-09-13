@@ -1,0 +1,351 @@
+<title>{{PAGE_TITLE}}</title>
+<style>
+  :root {
+    --bg: #f4f5f8;
+    --surface: #ffffff;
+    --surface-alt: #eceef3;
+    --border: #d7dae3;
+    --text: #1a1d27;
+    --text-muted: #5b6072;
+    --text-faint: #8a8fa3;
+    --accent: #33459c;
+    --accent-soft: #e7eafb;
+    --bar-track: #e3e5ec;
+    --bar-fill: #33459c;
+    --tag-bg: #eef0f6;
+    --tag-text: #454a5f;
+    --tag-none-bg: #fbe9e7;
+    --tag-none-text: #a13b2a;
+    --row-hover: #f7f8fc;
+    --shadow: 0 1px 2px rgba(20, 22, 30, 0.06), 0 8px 24px rgba(20, 22, 30, 0.05);
+  }
+
+  /* このページは常時ライト固定（ダーク分岐は意図的に持たない） */
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+    font-feature-settings: "palt";
+    line-height: 1.6;
+  }
+
+  .page { max-width: 1700px; margin: 0 auto; padding: 40px 28px 72px; }
+
+  header.hero { margin-bottom: 28px; }
+  header.hero h1 { font-size: 27px; font-weight: 700; margin: 0 0 6px; text-wrap: balance; }
+  header.hero p.lede { margin: 0; color: var(--text-muted); font-size: 15.5px; font-weight: 500; }
+
+  /* データセットを分けるタブが要るときはコメントを外して使え（.tab-bar / .tab のスタイル）
+  .tab-bar { display: flex; gap: 6px; margin: 20px 0 4px; }
+  .tab {
+    padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-muted); font-size: 13.5px; font-weight: 700; cursor: pointer; appearance: none; font-family: inherit;
+  }
+  .tab.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  */
+
+  .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0 28px; }
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .summary-card .num { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .summary-card .label { font-size: 13.5px; font-weight: 700; color: var(--text-muted); margin-top: 2px; }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow);
+  }
+  .controls input[type="search"] {
+    flex: 1 1 220px; min-width: 180px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-alt); color: var(--text); font-size: 14.5px; font-weight: 500;
+  }
+  .controls select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text); font-size: 14.5px; font-weight: 500; }
+  .controls .filter-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--surface-alt); color: var(--text-muted); font-size: 13.5px; font-weight: 700; cursor: pointer; user-select: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .controls .filter-chip.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+  .controls .count { margin-left: auto; font-size: 13.5px; font-weight: 700; color: var(--text-faint); white-space: nowrap; }
+
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-weight: 500; min-width: 760px; table-layout: fixed; }
+
+  thead th {
+    position: sticky; top: 0; background: var(--surface-alt); text-align: left; padding: 10px 14px;
+    font-size: 12.5px; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700;
+    border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+    cursor: pointer; white-space: nowrap; overflow: hidden; position: relative;
+  }
+  thead th:last-child { border-right: none; }
+  thead th.sorted::after { content: " " attr(data-dir); color: var(--accent); }
+
+  .col-resizer { position: absolute; right: -3px; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 2; touch-action: none; }
+  .col-resizer:hover, .col-resizer.resizing { background: var(--accent); opacity: 0.4; }
+  body.resizing-col { user-select: none; }
+
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: top; }
+  tbody td:last-child { border-right: none; }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  tr.group-header td { background: var(--surface-alt); padding: 8px 14px; border-bottom: 1px solid var(--border); }
+  tr.group-header:hover { background: transparent; }
+  .group-name { font-weight: 700; font-size: 14px; color: var(--text); }
+  .group-meta { margin-left: 10px; font-size: 12.5px; color: var(--text-faint); font-weight: 700; }
+
+  .col-name .column-name { font-weight: 700; font-size: 14.5px; }
+  .sub-name { display: block; color: var(--text-muted); font-size: 13px; font-weight: 600; margin-top: 1px; }
+
+  .col-ratio { width: 160px; }
+  .col-target { width: 270px; }
+
+  .ratio-bar { display: flex; align-items: center; gap: 8px; }
+  .ratio-bar .track { flex: 1; height: 6px; border-radius: 3px; background: var(--bar-track); overflow: hidden; }
+  .ratio-bar .fill { height: 100%; background: var(--bar-fill); border-radius: 3px; }
+  .ratio-bar .pct { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: var(--text-muted); width: 42px; text-align: right; flex-shrink: 0; }
+  .missing-count { display: block; font-size: 12px; font-weight: 600; color: var(--text-faint); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag { display: inline-block; max-width: 100%; padding: 2px 8px; border-radius: 6px; background: var(--tag-bg); color: var(--tag-text); font-size: 12.5px; font-weight: 600; white-space: normal; overflow-wrap: break-word; word-break: break-word; }
+  .tag.none { background: var(--tag-none-bg); color: var(--tag-none-text); font-weight: 700; }
+
+  .note { color: var(--text-muted); font-size: 13px; font-weight: 600; max-width: 280px; }
+
+  .empty-state { padding: 40px; text-align: center; color: var(--text-faint); font-size: 14.5px; font-weight: 500; }
+</style>
+
+<div class="page">
+  <header class="hero">
+    <h1>{{PAGE_TITLE}}</h1>
+    <p class="lede">{{何をどう絞り込める一覧かを1〜2文で。総件数・対象の単位もここに書く}}</p>
+  </header>
+
+  <!-- データセットを分けるタブが要るときはコメントを外して使え。data-tab の値はDATA側の判定条件に対応させる
+  <div class="tab-bar" id="tabBar">
+    <button class="tab active" data-tab="all">全て</button>
+    <button class="tab" data-tab="example">{{タブ名}}</button>
+  </div>
+  -->
+
+  <div class="summary-row" id="summaryRow"></div>
+
+  <div class="controls">
+    <input type="search" id="searchInput" placeholder="{{検索対象}}で検索" />
+    <!-- フィルタチップは用途に合わせて増減してよい。data-filter の値は DATA 側の判定条件に対応させる -->
+    <span class="filter-chip" data-filter="example">{{フィルタ名}}</span>
+    <select id="groupSelect"><option value="">全グループ</option></select>
+    <span class="count" id="resultCount"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th data-key="name">{{項目名の列見出し}}</th>
+          <th data-key="ratio" class="col-ratio">{{比率列の見出し}}</th>
+          <th data-key="target" class="col-target">{{タグ列の見出し}}</th>
+          <th data-key="note">備考</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">条件に一致する項目がありません</div>
+  </div>
+</div>
+
+<script>
+  // DATA の1件が1行。group の値でグルーピングされ、group が変わるタイミングで見出し行が挿入される
+  // targets が空配列、または "なし" を含む場合は赤タグ（.tag.none）で強調される
+  const DATA = [
+    // {
+    //   group: "properties",
+    //   name: "user_id",
+    //   subName: "担当者ID",
+    //   missing: 6774,
+    //   total: 6774,
+    //   ratio: 100.0,
+    //   targets: ["概要1タブ", "ダッシュボードPDF"],
+    //   note: "常にnull固定（コード上の仕様）",
+    // },
+  ];
+
+  let searchTerm = "";
+  let activeGroup = "";
+  let activeChip = null;
+  let sortKey = null;
+  let sortDir = "asc";
+  // タブでデータセットを分けるときは activeTab を有効化し、filtered() に1条件足せ
+  // let activeTab = "all";
+
+  function populateGroupSelect() {
+    const groups = [...new Set(DATA.map((d) => d.group))];
+    document.getElementById("groupSelect").innerHTML =
+      `<option value="">全グループ</option>` + groups.map((g) => `<option value="${g}">${g}</option>`).join("");
+  }
+
+  function filtered() {
+    return DATA.filter((d) => {
+      // if (activeTab !== "all" && d.tabKey !== activeTab) return false;
+      if (activeGroup && d.group !== activeGroup) return false;
+      if (searchTerm && !`${d.name}${d.subName ?? ""}${d.group}`.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      // activeChip の判定条件は用途に合わせて実装する（例: "none" なら targets.length === 0 のみ通す）
+      return true;
+    });
+  }
+
+  function renderSummary() {
+    // 用途に合わせて4枚のKPIを出す（例: 総件数・要対応件数・平均欠損率 等）
+    document.getElementById("summaryRow").innerHTML = `
+      <div class="summary-card"><div class="num">${DATA.length}</div><div class="label">総件数</div></div>
+    `;
+  }
+
+  function renderTable() {
+    let rows = filtered();
+    if (sortKey) {
+      rows = [...rows].sort((a, b) => {
+        const av = a[sortKey] ?? "";
+        const bv = b[sortKey] ?? "";
+        const cmp = typeof av === "number" ? av - bv : String(av).localeCompare(String(bv));
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
+
+    let lastGroup = null;
+    const body = document.getElementById("tableBody");
+    body.innerHTML = "";
+    rows.forEach((d) => {
+      if (d.group !== lastGroup) {
+        lastGroup = d.group;
+        const count = rows.filter((r) => r.group === d.group).length;
+        body.insertAdjacentHTML(
+          "beforeend",
+          `<tr class="group-header"><td colspan="4"><span class="group-name">${d.group}</span><span class="group-meta">${count}件</span></td></tr>`
+        );
+      }
+      const targets = d.targets ?? [];
+      const isNone = targets.length === 0;
+      const tagsHtml = isNone
+        ? `<span class="tag none">どこにも表示されない</span>`
+        : targets.map((t) => `<span class="tag">${t}</span>`).join("");
+      body.insertAdjacentHTML(
+        "beforeend",
+        `<tr>
+          <td class="col-name"><span class="column-name">${d.name}</span>${d.subName ? `<span class="sub-name">${d.subName}</span>` : ""}</td>
+          <td class="col-ratio">
+            <div class="ratio-bar">
+              <div class="track"><div class="fill" style="width:${d.ratio}%"></div></div>
+              <span class="pct">${d.ratio}%</span>
+            </div>
+            <span class="missing-count">${d.missing ?? "-"} / ${d.total ?? "-"}件</span>
+          </td>
+          <td class="col-target"><div class="tags">${tagsHtml}</div></td>
+          <td class="note">${d.note ?? ""}</td>
+        </tr>`
+      );
+    });
+
+    document.getElementById("resultCount").textContent = `${rows.length} / ${DATA.length} 件`;
+    document.getElementById("emptyState").style.display = rows.length ? "none" : "block";
+  }
+
+  document.getElementById("searchInput").addEventListener("input", (e) => {
+    searchTerm = e.target.value;
+    renderTable();
+  });
+  document.getElementById("groupSelect").addEventListener("change", (e) => {
+    activeGroup = e.target.value;
+    renderTable();
+  });
+  document.querySelectorAll(".filter-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const key = chip.dataset.filter;
+      activeChip = activeChip === key ? null : key;
+      document.querySelectorAll(".filter-chip").forEach((c) => c.classList.toggle("active", c.dataset.filter === activeChip));
+      renderTable();
+    });
+  });
+  // タブを有効化したらこれも有効化しろ
+  // document.querySelectorAll("#tabBar .tab").forEach((el) => {
+  //   el.addEventListener("click", () => {
+  //     activeTab = el.dataset.tab;
+  //     document.querySelectorAll("#tabBar .tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === activeTab));
+  //     renderTable();
+  //   });
+  // });
+
+  // 列幅は閲覧者ごとのローカルな表示状態なので localStorage に保存する（publish() には載せない）
+  const COL_WIDTH_KEY = "col-widths";
+
+  function loadColWidths() {
+    try {
+      return JSON.parse(localStorage.getItem(COL_WIDTH_KEY) ?? "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function saveColWidth(key, width) {
+    try {
+      const widths = loadColWidths();
+      widths[key] = width;
+      localStorage.setItem(COL_WIDTH_KEY, JSON.stringify(widths));
+    } catch {
+      // プライベートウィンドウ等で保存できない環境では幅の保持だけを諦める
+    }
+  }
+
+  const savedColWidths = loadColWidths();
+
+  document.querySelectorAll("thead th[data-key]").forEach((th) => {
+    if (savedColWidths[th.dataset.key]) {
+      th.style.width = savedColWidths[th.dataset.key] + "px";
+    }
+
+    th.addEventListener("click", () => {
+      const key = th.dataset.key;
+      sortDir = sortKey === key && sortDir === "asc" ? "desc" : "asc";
+      sortKey = key;
+      document.querySelectorAll("thead th").forEach((t) => t.classList.remove("sorted"));
+      th.classList.add("sorted");
+      th.dataset.dir = sortDir === "asc" ? "▲" : "▼";
+      renderTable();
+    });
+
+    // 列幅ドラッグリサイズ
+    const resizer = document.createElement("div");
+    resizer.className = "col-resizer";
+    th.appendChild(resizer);
+    // mousedown の stopPropagation だけではドラッグ後の click が th へバブルしてソートが誤発動する。この click ハンドラを外すな
+    resizer.addEventListener("click", (e) => e.stopPropagation());
+    resizer.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = th.offsetWidth;
+      let lastWidth = startWidth;
+      resizer.classList.add("resizing");
+      document.body.classList.add("resizing-col");
+      const onMove = (moveEvent) => {
+        lastWidth = Math.max(60, startWidth + (moveEvent.clientX - startX));
+        th.style.width = lastWidth + "px";
+      };
+      const onUp = () => {
+        resizer.classList.remove("resizing");
+        document.body.classList.remove("resizing-col");
+        saveColWidth(th.dataset.key, lastWidth);
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+  });
+
+  populateGroupSelect();
+  renderSummary();
+  renderTable();
+</script>

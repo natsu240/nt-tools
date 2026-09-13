@@ -1,0 +1,13 @@
+{
+  "size": 0,
+  "query": { "term": { "event_name": "api_request" } },
+  "aggs": {
+    "by_query_source": {
+      "terms": { "field": "attributes.query_source.keyword", "size": 30, "order": { "total_cost": "desc" } },
+      "aggs": {
+        "total_cost": { "sum": { "field": "attributes.cost_usd" } },
+        "total_output_tokens": { "sum": { "field": "attributes.output_tokens" } }
+      }
+    }
+  }
+}

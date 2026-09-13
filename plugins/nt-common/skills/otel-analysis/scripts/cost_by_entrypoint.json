@@ -1,0 +1,24 @@
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "event_name": "api_request" } },
+        { "exists": { "field": "attributes.app.entrypoint.keyword" } }
+      ]
+    }
+  },
+  "aggs": {
+    "by_entrypoint": {
+      "terms": { "field": "attributes.app.entrypoint.keyword", "size": 20, "order": { "total_cost": "desc" } },
+      "aggs": {
+        "total_cost": { "sum": { "field": "attributes.cost_usd" } },
+        "total_output_tokens": { "sum": { "field": "attributes.output_tokens" } },
+        "avg_cost_per_call": { "avg": { "field": "attributes.cost_usd" } },
+        "by_job": {
+          "terms": { "field": "resource.attributes.job.keyword", "size": 10 }
+        }
+      }
+    }
+  }
+}

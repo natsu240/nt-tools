@@ -1,0 +1,7 @@
+
+# 作業用スクラッチ
+.scratch/
+
+# Python バイトコードキャッシュ
+__pycache__/
+*.pyc

@@ -1,0 +1,8 @@
+[Unit]
+Description=nt-tools のインストール済みプラグインを最新化する
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/.claude/scripts/nt-plugin-auto-update.sh
+StandardOutput=append:%h/.claude/scripts/nt-plugin-auto-update-stdout.log
+StandardError=append:%h/.claude/scripts/nt-plugin-auto-update-stderr.log

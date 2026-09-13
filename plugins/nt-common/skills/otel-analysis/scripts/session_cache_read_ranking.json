@@ -1,0 +1,19 @@
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "event_name": "api_request" } },
+        { "terms": { "attributes.query_source.keyword": ["repl_main_thread", "sdk"] } }
+      ]
+    }
+  },
+  "aggs": {
+    "by_session": {
+      "terms": { "field": "attributes.session.id.keyword", "size": 8, "order": { "total_cache_read": "desc" } },
+      "aggs": {
+        "total_cache_read": { "sum": { "field": "attributes.cache_read_tokens" } }
+      }
+    }
+  }
+}

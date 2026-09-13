@@ -1,0 +1,24 @@
+{
+  "size": 0,
+  "query": { "term": { "event_name": "tool_result" } },
+  "runtime_mappings": {
+    "tool_result_size_bytes_num": {
+      "type": "double",
+      "script": "def f = doc['attributes.tool_result_size_bytes.keyword']; if (f.size() == 0) { return; } emit(Double.parseDouble(f.value));"
+    }
+  },
+  "aggs": {
+    "by_tool": {
+      "terms": { "field": "attributes.tool_name.keyword", "size": 30, "order": { "total_bytes": "desc" } },
+      "aggs": {
+        "total_bytes": { "sum": { "field": "tool_result_size_bytes_num" } },
+        "total_mb": {
+          "bucket_script": {
+            "buckets_path": { "bytes": "total_bytes" },
+            "script": "params.bytes / 1000000"
+          }
+        }
+      }
+    }
+  }
+}

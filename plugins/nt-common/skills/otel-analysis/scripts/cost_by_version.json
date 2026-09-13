@@ -1,0 +1,33 @@
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "event_name": "api_request" } },
+        { "exists": { "field": "attributes.app.version.keyword" } }
+      ]
+    }
+  },
+  "runtime_mappings": {
+    "ts_jst": {
+      "type": "keyword",
+      "script": "emit(DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm\").withZone(ZoneId.of(\"Asia/Tokyo\")).format(doc['@timestamp'].value))"
+    }
+  },
+  "aggs": {
+    "by_version": {
+      "terms": { "field": "attributes.app.version.keyword", "size": 20, "order": { "_key": "desc" } },
+      "aggs": {
+        "total_cost": { "sum": { "field": "attributes.cost_usd" } },
+        "avg_cost_per_call": { "avg": { "field": "attributes.cost_usd" } },
+        "avg_cache_read": { "avg": { "field": "attributes.cache_read_tokens" } },
+        "first_seen_jst": {
+          "top_hits": { "size": 1, "sort": [{ "@timestamp": "asc" }], "fields": ["ts_jst"], "_source": false }
+        },
+        "last_seen_jst": {
+          "top_hits": { "size": 1, "sort": [{ "@timestamp": "desc" }], "fields": ["ts_jst"], "_source": false }
+        }
+      }
+    }
+  }
+}

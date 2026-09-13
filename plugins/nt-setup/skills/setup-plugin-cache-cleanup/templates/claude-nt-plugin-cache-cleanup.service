@@ -1,0 +1,8 @@
+[Unit]
+Description=プラグインキャッシュに溜まった .in_use の目印を掃除する
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/.claude/scripts/nt-plugin-cache-cleanup.sh
+StandardOutput=append:%h/.claude/scripts/nt-plugin-cache-cleanup-stdout.log
+StandardError=append:%h/.claude/scripts/nt-plugin-cache-cleanup-stderr.log

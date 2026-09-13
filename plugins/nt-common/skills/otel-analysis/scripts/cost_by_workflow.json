@@ -1,0 +1,19 @@
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "event_name": "api_request" } },
+        { "exists": { "field": "attributes.workflow.name.keyword" } }
+      ]
+    }
+  },
+  "aggs": {
+    "by_workflow": {
+      "terms": { "field": "attributes.workflow.name.keyword", "size": 30, "order": { "total_cost": "desc" } },
+      "aggs": {
+        "total_cost": { "sum": { "field": "attributes.cost_usd" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "event_name": "api_request" } },
+        { "exists": { "field": "resource.attributes.job.keyword" } }
+      ]
+    }
+  },
+  "aggs": {
+    "by_job": {
+      "terms": { "field": "resource.attributes.job.keyword", "size": 30, "order": { "total_cost": "desc" } },
+      "aggs": {
+        "total_cost": { "sum": { "field": "attributes.cost_usd" } },
+        "total_output_tokens": { "sum": { "field": "attributes.output_tokens" } },
+        "by_project": {
+          "terms": { "field": "resource.attributes.project.keyword", "size": 5 }
+        }
+      }
+    }
+  }
+}

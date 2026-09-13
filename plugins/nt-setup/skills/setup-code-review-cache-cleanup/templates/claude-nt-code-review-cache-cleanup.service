@@ -1,0 +1,8 @@
+[Unit]
+Description=code-review が異常終了したときに残った作業ディレクトリを掃除する
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/.claude/scripts/nt-code-review-cache-cleanup.sh
+StandardOutput=append:%h/.claude/scripts/nt-code-review-cache-cleanup-stdout.log
+StandardError=append:%h/.claude/scripts/nt-code-review-cache-cleanup-stderr.log

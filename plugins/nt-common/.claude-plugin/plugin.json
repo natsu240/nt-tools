@@ -1,0 +1,13 @@
+{
+  "name": "nt-common",
+  "description": "領域を問わず使う共有スキル集。トークン消費分析・Web調査・ブラウザ操作等を提供する。",
+  "version": "1.0.0",
+  "author": {
+    "name": "natsu240"
+  },
+  "license": "MIT",
+  "keywords": [
+    "otel",
+    "research"
+  ]
+}

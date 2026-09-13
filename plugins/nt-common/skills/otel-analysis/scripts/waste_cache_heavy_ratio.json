@@ -1,0 +1,20 @@
+{
+  "size": 0,
+  "query": { "term": { "event_name": "api_request" } },
+  "aggs": {
+    "total_cost": { "sum": { "field": "attributes.cost_usd" } },
+    "waste": {
+      "filter": {
+        "bool": {
+          "filter": [
+            { "range": { "attributes.output_tokens": { "lt": 50 } } },
+            { "range": { "attributes.cache_read_tokens": { "gt": 50000 } } }
+          ]
+        }
+      },
+      "aggs": {
+        "waste_cost": { "sum": { "field": "attributes.cost_usd" } }
+      }
+    }
+  }
+}

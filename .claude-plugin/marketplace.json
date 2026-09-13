@@ -1,0 +1,24 @@
+{
+  "name": "nt-tools",
+  "description": "natsu240 個人が運用するClaude Codeスキルをまとめたプラグインマーケットプレイス。用途別に3プラグイン（nt-common/nt-developer/nt-setup）に分かれている。",
+  "owner": {
+    "name": "natsu240"
+  },
+  "plugins": [
+    {
+      "name": "nt-common",
+      "description": "領域を問わず使う共有スキル集。トークン消費分析・Web調査・ブラウザ操作等を提供する。",
+      "source": "./plugins/nt-common"
+    },
+    {
+      "name": "nt-developer",
+      "description": "エンジニアの開発ワークフロー全般をまとめた plugin。Git・コードレビュー・コードスタイル規約・実装計画管理等を提供する。",
+      "source": "./plugins/nt-developer"
+    },
+    {
+      "name": "nt-setup",
+      "description": "各種セットアップ専用 plugin。Claude Code 自身の環境構築・監視・通知の自動化を対話式にセットアップする。",
+      "source": "./plugins/nt-setup"
+    }
+  ]
+}

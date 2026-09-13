@@ -1,0 +1,11 @@
+[Unit]
+Description=nt-plugin-auto-update を一定間隔で起動する
+
+[Timer]
+OnStartupSec=0
+OnUnitActiveSec=__INTERVAL_SECONDS__
+# 既定の精度は1分で、それより短い間隔が丸められる
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

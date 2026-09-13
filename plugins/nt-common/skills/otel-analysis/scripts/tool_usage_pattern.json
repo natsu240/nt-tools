@@ -1,0 +1,21 @@
+{
+  "size": 0,
+  "query": { "term": { "event_name": "tool_result" } },
+  "runtime_mappings": {
+    "duration_ms_num": {
+      "type": "double",
+      "script": "def f = doc['attributes.duration_ms.keyword']; if (f.size() == 0) { return; } emit(Double.parseDouble(f.value));"
+    }
+  },
+  "aggs": {
+    "by_tool": {
+      "terms": { "field": "attributes.tool_name.keyword", "size": 30 },
+      "aggs": {
+        "avg_duration_ms": { "avg": { "field": "duration_ms_num" } },
+        "failures": {
+          "filter": { "term": { "attributes.success.keyword": "false" } }
+        }
+      }
+    }
+  }
+}
