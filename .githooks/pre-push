@@ -26,4 +26,7 @@ for test_file in plugins/*/tests/*.test.sh; do
   bash "$test_file"
 done
 
+base_ref="$(git merge-base HEAD origin/main 2>/dev/null || echo HEAD)"
+bash scripts/check-validator-prompt-change.sh "$base_ref" HEAD
+
 echo "push前チェック: 全部通過"

@@ -1,10 +1,14 @@
 #!/bin/bash
-# plugins/ 配下を触ったコミットで plugin.json の version 更新を忘れる事故を機械的に防ぐ
-# （README.md「バージョン管理」参照）。
+# plugins/ 配下を触ったコミットで plugin.json の version 更新を忘れる事故を機械的に防ぐ（上げる桁のルールは CLAUDE.md にある）。
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
+
+# マージコミットは検査しない。差分は自分側の親と比べて出るため、取り込んだ側だけが上げた version は差分に現れない。
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+  exit 0
+fi
 
 staged_files="$(git diff --cached --name-only)"
 
@@ -34,7 +38,7 @@ done <<< "$touched_plugins"
 
 if [ "$missing" -ne 0 ]; then
   echo "" >&2
-  echo "README.md「バージョン管理」のとおり、plugins/ 配下を触った場合は該当プラグインの plugin.json の version を同じコミットに含めてください（原則パッチ刻み）。" >&2
+  echo "CLAUDE.md のとおり、plugins/ 配下を触った場合は該当プラグインの plugin.json の version を同じコミットに含めてください（上げる桁は変更の種類で決め、判断できないときは patch に倒してください）。" >&2
   exit 1
 fi
 
