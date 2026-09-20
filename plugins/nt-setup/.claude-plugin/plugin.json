@@ -1,7 +1,7 @@
 {
   "name": "nt-setup",
   "description": "各種セットアップ専用 plugin。Claude Code 自身の環境構築・監視・通知の自動化を対話式にセットアップする。",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "natsu240"
   },

@@ -145,9 +145,6 @@ Workflow は CACHE_DIR 準備 → PR コンテキスト取得 → レビュー�
   "lint_executed": true | false,
   "lint_method": "Pint / PHPStan ...",
   "spec_failures": [],
-  "degraded_engine_failures": [
-    { "id": "X-security", "stage": "並列レビュー", "dimension": "Security", "status": "失敗 (JSON parse)", "excerpt": "...", "error": "..." }
-  ],
   "findings": [
     {
       "file": "...",

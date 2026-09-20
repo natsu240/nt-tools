@@ -149,7 +149,7 @@ run_gate pass "cache-io.sh 経由の \$HOME/.claude/cache/code-review 配下 wri
 # --- 除外パスに見せかけつつ他のパスも含む状態変更コマンド → 拒否（一時領域限定であることを潰さない） ---
 run_gate deny "除外パスと非除外パスが混在する rm" "$(bash_payload "rm -rf /tmp/scratch.log $CODE_PATH" no-skill)"
 run_gate deny "\$HOME/.claude/state 配下に見せかけつつ他ファイルも消す rm" "$(bash_payload "rm -rf $FAKE_HOME/.claude/state/plan-current.json /etc/passwd" no-skill)"
-run_gate deny "cache-io.sh 経由に見せかけつつ cache-review-with-codex 配下外も触る" "$(bash_payload "bash /home/user/plugins/nt-developer/scripts/cache-io.sh mkdir /etc/passwd" no-skill)"
+run_gate deny "cache-io.sh 経由に見せかけつつ code-review キャッシュ配下外も触る" "$(bash_payload "bash /home/user/plugins/nt-developer/scripts/cache-io.sh mkdir /etc/passwd" no-skill)"
 
 # --- 読み取りだけの Bash → 素通し ---
 run_gate pass "ls" "$(bash_payload 'ls -la /etc' no-skill)"
