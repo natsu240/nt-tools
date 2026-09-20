@@ -456,10 +456,8 @@ const RETRYABLE_FAIL_FAST_VERBATIM = [
   "I'm now monitoring",
   'continue working on other tasks in parallel',
   'while waiting for',
-  'monitoring the Codex execution',
-  // Codex CLI がタイムアウトしたとき、ラッパーがログを paraphrase で返してきた
-  // ときの典型フレーズ。Codex 出力本文（JSON）や `tail -c` の生バイトに含まれない
-  // 自然言語パターンに絞る。
+  // ラッパーがログを paraphrase で返してきたときの典型フレーズ。
+  // 出力本文（JSON）や `tail -c` の生バイトに含まれない自然言語パターンに絞る。
   'The log shows',
   'The process is still',
   'The file is still',
@@ -469,7 +467,6 @@ const RETRYABLE_FAIL_FAST_VERBATIM = [
   'stuck in a parsing loop',
   'stuck on Google',
   'is encountering',
-  'Since Codex is',
   'timed out and',
   'I monitored',
   'I observed',
@@ -616,10 +613,9 @@ function buildFileRefSection(label, filePaths, fallbackNote) {
   return `## ${label}\n\n以下のファイルを Read ツールで全文読んでから確認しろ（要約や一部だけを見て判断するな）:\n${pathList}`
 }
 
-// テキスト（Read しろという指示文）と、Codex に cat 連結で渡す実ファイルパスの
-// フラット配列を両方返す。両者は同じ「この観点にはどのファイルが要るか」の
-// 条件分岐を共有するため 1 関数にまとめている。
-function buildContextRefForDimension({ dimensionKey, cacheFiles, projectRoot, engine }) {
+// テキスト（Read しろという指示文）と、実ファイルパスのフラット配列を両方返す。
+// 両者は同じ「この観点にはどのファイルが要るか」の条件分岐を共有するため 1 関数にまとめている。
+function buildContextRefForDimension({ dimensionKey, cacheFiles, projectRoot }) {
   const parts = []
   const filePaths = []
   const addSection = (label, value, fallbackNote) => {
@@ -632,7 +628,7 @@ function buildContextRefForDimension({ dimensionKey, cacheFiles, projectRoot, en
   if (['security', 'spec_range', 'consistency'].includes(dimensionKey)) {
     addSection('GUIDELINES', cacheFiles.guidelines, '(なし)')
   }
-  if (dimensionKey === 'spec_range' && engine === 'claude') {
+  if (dimensionKey === 'spec_range') {
     addSection('LEGACY_SOURCE', cacheFiles.legacySource, '(legacy-source.md なし)')
   }
   if (dimensionKey === 'consistency') {
@@ -688,9 +684,9 @@ function failureRow(entry, failure, fallbackId) {
 }
 
 // 1 個でも失敗を検知した瞬間に onFirstFailure を呼ぶ並列実行。
-// 標準の parallel() は全件 await のため、失敗確定後も他観点が走り続けてしまい
-// Codex のトークンを無駄に消費する。これを onFirstFailure で kill flag を立てる
-// ことで、ラッパー Bash 内のポーリング監視が codex プロセスを kill して停止する。
+// 標準の parallel() は全件 await のため、失敗確定後も他観点が走り続けてトークンを
+// 無駄に消費する。これを onFirstFailure で kill flag を立てることで、ラッパー Bash
+// 内のポーリング監視が実行中のプロセスを kill して停止する。
 async function parallelFailFast(thunks, detector, onFirstFailure) {
   return new Promise((resolve) => {
     const results = new Array(thunks.length).fill(null)
@@ -751,7 +747,7 @@ stdout には "OK" の 1 行だけを出力しろ。それ以外のテキスト�
 }
 
 // リトライ前に .kill フラグを掃除する。掃除しないと runner.sh が起動直後に
-// exit 137 で戻り、リトライした Codex agent が即失敗する。
+// exit 137 で戻り、リトライした agent が即失敗する。
 async function clearKillFlag(cacheDir, phaseName) {
   if (!cacheDir) return
   killFlagRaised = false
@@ -771,7 +767,7 @@ stdout には "OK" の 1 行だけを出せ。エラーが出ても OK と出せ
       effort: 'low',
     })
   } catch (e) {
-    /* clear 失敗時はリトライで codex 側が即死するが、それ自体はハンドリング済み */
+    /* clear 失敗時はリトライ側が即死するが、それ自体はハンドリング済み */
   }
 }
 
@@ -826,7 +822,7 @@ async function parallelWithRetry(thunks, detector, onFirstFailure, cacheDir, pha
     log(`${phaseName} で ${ownFailureIndices.length} slot 失敗を検知 → 該当 slot だけリトライします（巻き込まれた ${collateralIndices.length} slot は後回し）`)
     await rerunSlots(ownFailureIndices)
     // リトライでも直らなければこの後どうせ fail_fast するので、巻き込まれた slot は走らせない。
-    // 走らせても結果は捨てられ、Codex のトークンだけ消える。
+    // 走らせても結果は捨てられ、トークンだけ消える。
     if (stillFailing(ownFailureIndices)) return results
   }
 
@@ -1001,7 +997,7 @@ function cacheIo(op, path) {
 
 // diff 取得直後に必ずこのフィルタを通す。.csv/.tsv、DDL を含まない .sql の
 // 差分本体を要約1行に差し替える固定処理（LLM 判断を挟まない）。巨大なマスタ
-// データが丸ごと diff に乗って Codex の読み込み上限を超え、並列レビューが
+// データが丸ごと diff に乗ってレビュー担当の読み込み上限を超え、並列レビューが
 // 全滅するのを防ぐ。
 function trimBulkDataDiffs() {
   return `bash "${TRIM_DIFF_SCRIPT}"`
@@ -1049,9 +1045,9 @@ try {
 
 // ========== CACHE_DIR 準備 ==========
 // 差分・仕様・PR 本文・ガイドライン等の実データは、以降の全フェーズで
-// このディレクトリ配下のファイルとして保存し、レビュー担当・検証役・Codex は
-// すべて Read / cat でこのファイルを参照する（プロンプト文字列への直接埋め込み
-// をやめる）。USE_CODEX の有無に関わらず必要なので最初に確定させる。
+// このディレクトリ配下のファイルとして保存し、レビュー担当・検証役はすべて
+// Read / cat でこのファイルを参照する（プロンプト文字列への直接埋め込みをやめる）。
+// 後段の全レビュー担当が同じパスを参照するため最初に確定させる。
 
 phase('CACHE_DIR 準備')
 
@@ -1421,7 +1417,7 @@ if (hasAwsIacMcp) {
 // ========== 収集 ==========
 // 差分・ガイドライン・変更履歴・lint 結果は、取得したコマンドの出力をその場で
 // ファイルにリダイレクトする（Read してから Write で書き写す経路は使わない）。
-// 後続の全レビュー担当・検証役・Codex は、この CACHE_DIR 配下のファイルを
+// 後続の全レビュー担当・検証役は、この CACHE_DIR 配下のファイルを
 // Read / cat で参照するだけで済むようにするため。
 
 phase('収集')
@@ -1615,13 +1611,6 @@ for (const d of DIMENSIONS) {
     dimensionKey: d.key,
     cacheFiles,
     projectRoot: PROJECT_ROOT,
-    engine: 'claude',
-  })
-  const codexCtx = buildContextRefForDimension({
-    dimensionKey: d.key,
-    cacheFiles,
-    projectRoot: PROJECT_ROOT,
-    engine: 'codex',
   })
   const reviewPrompt = buildR1Prompt({
     commonMd,
@@ -1635,9 +1624,8 @@ for (const d of DIMENSIONS) {
   // 渡せば自分で読みに行く。DIFF 等の実データをプロンプトに埋め込む必要がない。
   // Bug/Logic 観点かつ laravel-boost 接続済みの場合だけ実データベース参照版
   // （reviewer-db）に、Bug/Logic・Security 観点かつ aws-iac-mcp-server 接続済み
-  // の場合だけ CDK 検証版（reviewer-cdk）に差し替える（他観点・Codex 側は
-  // 従来どおり）。laravel-boost を優先する（同一 PR で両方接続済みの場合、
-  // Bug/Logic 観点は Laravel の DB 照合を優先する）。
+  // の場合だけ CDK 検証版（reviewer-cdk）に差し替える（他観点は従来どおり）。
+  // laravel-boost を優先する（同一 PR で両方接続済みの場合、Bug/Logic 観点は Laravel の DB 照合を優先する）。
   const claudeLabel = `C-${d.key}`
   let claudeAgentType = 'nt-developer:reviewer'
   if (d.key === 'bug_logic' && hasLaravelBoost) {
@@ -1663,21 +1651,13 @@ const r1Raw = await parallelWithRetry(
   '並列レビュー',
 )
 
-// Codex 側は同じ観点を Claude と二重に見る増設分なので、落ちても観点そのものは Claude 側で揃う。
-// 中止に巻き込むと Codex CLI の認証切れ 1 件で 21 分の workflow を毎回捨てることになるため、degradedEngineFailures へ積んで続行する。
 const r1Failures = []
-const degradedEngineFailures = []
 const r1Parsed = []
 for (let i = 0; i < r1Raw.length; i++) {
   const entry = r1Raw[i]
   const failure = detectR1Failure(entry)
   if (failure) {
-    const row = failureRow(entry, failure, `slot-${i}`)
-    if (entry && entry.engine === 'codex') {
-      degradedEngineFailures.push({ ...row, stage: '並列レビュー', dimension: entry.dimensionLabel || entry.dimension || '' })
-    } else {
-      r1Failures.push(row)
-    }
+    r1Failures.push(failureRow(entry, failure, `slot-${i}`))
     continue
   }
   r1Parsed.push({ ...entry, findings: tryParseJson(entry.raw).value.findings })
@@ -1685,7 +1665,6 @@ for (let i = 0; i < r1Raw.length; i++) {
 
 if (r1Failures.length > 0) {
   workflowResult = failFastReport('並列レビュー', r1Failures)
-  workflowResult.degraded_engine_failures = degradedEngineFailures
   return workflowResult
 }
 
@@ -1831,8 +1810,7 @@ if (merged.length === 0) {
   })), null, 2)
 
   // R1_FINDINGS もファイル化する。DIFF ほど巨大にはならないが、DIFF / PR_CONTEXT
-  // と同じくファイル参照方式に統一し、validator（Claude 側・Codex 側とも）は
-  // Read / cat だけで内容を取得する。
+  // と同じくファイル参照方式に統一し、validator は Read / cat だけで内容を取得する。
   const r1FindingsPath = `${CACHE_DIR}/r1_findings.json`
   const r1FindingsSaveRaw = await agent(`お前はファイル書き出し専用エージェントだ。Write ツールで以下の絶対パスに、下記の内容を一字一句変えずにそのまま書け。
 
@@ -1872,8 +1850,6 @@ stdout には "OK" の 1 行だけ出せ。それ以外のテキスト・前置�
   const reviewRulesSection = hasReviewRules
     ? buildFileRefSection('REVIEW_RULES', `${CACHE_DIR}/review_rules.txt`, '(review-rules なし)')
     : ''
-  // Codex 側の validator には渡さない（移行元リポジトリを読めるか未確認のため、
-  // 並列レビューの移行元照合観点と同じ扱いにする）。
   const legacySourceSection = hasLegacySource
     ? buildFileRefSection('LEGACY_SOURCE', `${CACHE_DIR}/legacy_source.txt`, '(legacy-source.md なし)')
     : ''
@@ -1910,19 +1886,13 @@ stdout には "OK" の 1 行だけ出せ。それ以外のテキスト・前置�
     const entry = r2Raw[i]
     const failure = detectR2Failure(entry)
     if (failure) {
-      const row = failureRow(entry, failure, `validator-${i}`)
-      if (entry && entry.engine === 'codex') {
-        degradedEngineFailures.push({ ...row, stage: '正誤検証', dimension: '正誤検証' })
-      } else {
-        r2Failures.push(row)
-      }
+      r2Failures.push(failureRow(entry, failure, `validator-${i}`))
       continue
     }
     r2Parsed.push({ ...entry, body: tryParseJson(entry.raw).value })
   }
   if (r2Failures.length > 0) {
     workflowResult = failFastReport('正誤検証', r2Failures)
-    workflowResult.degraded_engine_failures = degradedEngineFailures
     return workflowResult
   }
 
@@ -2118,7 +2088,6 @@ workflowResult = {
   lint_executed: collected.lint_executed,
   lint_method: collected.lint_method,
   spec_failures: [],
-  degraded_engine_failures: degradedEngineFailures,
   findings: findingsOut,
   optional_findings: optionalFindingsOut,
   personal_preference_findings: personalPreferenceFindingsOut,
@@ -2142,7 +2111,7 @@ return workflowResult
     await cleanupCacheDir()
   } else if (CACHE_DIR) {
     // 立てたままの kill フラグを残すと、SKILL.md が案内している resumeFromRunId での再開時に
-    // runner.sh が起動直後にそれを見つけて exit 137 で戻り、Codex 側が 1 つも走らない。
+    // runner.sh が起動直後にそれを見つけて exit 137 で戻り、レビューが 1 つも走らない。
     if (killFlagRaised) {
       await clearKillFlag(CACHE_DIR, '後始末')
     }
