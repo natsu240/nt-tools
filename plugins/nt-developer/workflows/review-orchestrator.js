@@ -381,6 +381,7 @@ LINT_RESULTS が渡された場合、lint が指摘済みのものを重複指�
 
 入力: DIFF / GUIDELINES / LINT_RESULTS / GIT_HISTORY / PR_CONTEXT
 `,
+  // ==VALIDATOR_PROMPT_START==（この指示文を変更したら plugins/nt-developer/tests/validator-fixtures/ の見本で手動確認しろ。変更は push 前の検査が検知する）
   validator: `お前はコードレビューのバリデータだ。Round 1 で複数のレビューエージェントが出した指摘を検証しろ。
 
 ## タスク
@@ -422,6 +423,7 @@ new_findings の各要素、および validations で verdict を \`valid\` に�
 
 入力: DIFF / R1_FINDINGS / PR_CONTEXT / REVIEW_RULES / LEGACY_SOURCE
 `,
+  // ==VALIDATOR_PROMPT_END==
 }
 
 // ==FAILFAST_UNIT_START==

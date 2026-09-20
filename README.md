@@ -87,6 +87,7 @@ claude plugin install <プラグイン名>@nt-tools
 | `project_notes/legacy-source.md` | `/code-review` | 移行元コードのローカル絶対パスと構造の説明 |
 | `project_notes/comment-guard.json` | `gate-comment-reference.sh` | コメント出典チェックの除外パス・追加パターン |
 | `project_notes/review-rules/*.md` | `/code-review` | リポジトリ固有のコードレビュー規約 |
+| `project_notes/browser-operation-rules.md` | `/browser-operation` | ブラウザ操作の規約（起点 URL、ログイン運用、テストデータ、スクリーンショットの扱い） |
 
 <details>
 <summary>aws-sources.md のテンプレート</summary>

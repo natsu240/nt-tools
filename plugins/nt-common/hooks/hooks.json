@@ -87,6 +87,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/deny-cd-in-bash.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/deny-browser-operation-skill.sh"
           }
         ]
       },
@@ -122,6 +126,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/deny-bash-agent-rules-skill.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/deny-browser-operation-skill.sh"
           }
         ]
       },
