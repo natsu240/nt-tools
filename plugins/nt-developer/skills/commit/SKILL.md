@@ -38,7 +38,7 @@ effort: low
 ### 取り込み
 
 - 未コミットの変更（tracked / untracked 問わず）があれば `git stash push -u` で退避しろ。**未コミットの変更を抱えたまま素の `git pull` を叩くな**（同梱 hook が deny する）
-- `git pull origin <base>` で base の最新変更を取り込め
+- `git pull --no-ff origin <base>` で base の最新変更を取り込め
 - **コンフリクトが起きたらそこで止めてユーザーに報告し、指示を仰げ**（自動解決するな）。退避していた場合も `git stash pop` せずそのまま残せ（コンフリクト解消後にユーザー自身が pop する）
 - コンフリクトなく取り込めたら、退避していた場合は `git stash pop` で戻せ。この pop 自体がコンフリクトした場合も、そこで止めてユーザーに報告しろ
 - 取り込みが起きたら `git status --porcelain` を取り直せ。**退避前に取得したパス一覧をそのままステージングに使うな**（pull と pop でファイルの状態が変わっている）
