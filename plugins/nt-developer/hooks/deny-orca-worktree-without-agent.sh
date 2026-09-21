@@ -21,9 +21,15 @@ source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
 ORCA_WORKTREE_CREATE_RE="${GIT_CMD_HEAD}orca[[:space:]]+worktree[[:space:]]+create([[:space:]]|\$)"
 AGENT_OPT_RE='(^|[[:space:]])--agent([[:space:]]|=|$)'
 PROMPT_OPT_RE='(^|[[:space:]])--prompt([[:space:]]|=|$)'
+HELP_OPT_RE='(^|[[:space:]])(--help|-h)([[:space:]]|$)'
 
 stripped="$(strip_quoted "$command")"
 if ! grep -qE "$ORCA_WORKTREE_CREATE_RE" <<<"$stripped"; then
+  exit 0
+fi
+
+# --help はワークツリーを作らない
+if grep -qE "$HELP_OPT_RE" <<<"$stripped"; then
   exit 0
 fi
 

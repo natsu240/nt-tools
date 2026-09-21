@@ -46,6 +46,7 @@ run_case pass "--agent 無しの orca worktree create" \
   'orca worktree create --repo path:/x --name y --base-branch main'
 run_case pass "--agent がクォート内の本文にだけ現れる" \
   'orca worktree create --repo path:/x --name y --prompt "--agent claude と書いてある本文"'
+run_case pass "--help でヘルプを読むだけ" 'orca worktree create --help'
 run_case pass "orca worktree rm" 'orca worktree rm --worktree path:/x'
 run_case pass "orca worktree list" 'orca worktree list --json'
 run_case pass "create を grep するだけ" "grep -rn 'orca worktree create --agent' ./docs"

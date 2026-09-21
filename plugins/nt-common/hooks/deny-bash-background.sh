@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 input="$(cat)"
 
 run_in_background="$(jq -r '.tool_input.run_in_background // false' <<<"$input")"
@@ -14,16 +17,7 @@ command="$(jq -r '.tool_input.command // ""' <<<"$input")"
 
 respond_deny() {
   local reason="$1"
-  jq -n --arg reason "$reason" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: $reason
-      },
-      systemMessage: $reason
-    }
-  '
+  emit_pretooluse_decision deny "$reason"
   exit 0
 }
 

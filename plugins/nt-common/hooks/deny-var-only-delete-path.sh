@@ -8,6 +8,9 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 INPUT_JSON="$(cat)"
 
 TOOL_NAME="$(jq -r '.tool_name // empty' <<<"$INPUT_JSON")"
@@ -70,14 +73,5 @@ set +f
 
 REASON="🚫 削除対象のパス（${bad}）を変数の展開だけで組んでいます。変数が空だったときに意図しない場所を消しかねない形なので、Claude Code 本体の安全確認が確認プロンプトを出します（hook でも permission rule でもないため bypassPermissions でも消せません）。消す対象を絶対パスでそのまま書いてください（例: rm -f /home/user/.claude/hook-state/verify_state.log）。パスが長くても書いてください。"
 
-jq -n --arg reason "$REASON" '
-  {
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    },
-    systemMessage: $reason
-  }
-'
+emit_pretooluse_decision deny "$REASON"
 exit 0

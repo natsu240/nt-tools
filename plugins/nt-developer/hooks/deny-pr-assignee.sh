@@ -6,6 +6,9 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 INPUT_JSON="$(cat)"
 
 TOOL_NAME="$(jq -r '.tool_name // empty' <<<"$INPUT_JSON")"
@@ -30,14 +33,5 @@ fi
 
 REASON='🚫 gh pr create に --assignee (-a) が付いていません。/pr スキルの規約では常に --assignee @me を付けます。--assignee @me を足して実行し直してください。'
 
-jq -n --arg reason "$REASON" '
-  {
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    },
-    systemMessage: $reason
-  }
-'
+emit_pretooluse_decision deny "$REASON"
 exit 0

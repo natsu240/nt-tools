@@ -10,10 +10,15 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 INPUT_JSON="$(cat)"
 
 # shellcheck source=lib-gh-pr-post-detect.sh
 source "${BASH_SOURCE[0]%/*}/lib-gh-pr-post-detect.sh"
+# shellcheck source=lib-body-file-content.sh
+source "${BASH_SOURCE[0]%/*}/lib-body-file-content.sh"
 
 TOOL_NAME="$(jq -r '.tool_name // empty' <<<"$INPUT_JSON")"
 [[ "$TOOL_NAME" != "Bash" ]] && exit 0
@@ -47,10 +52,13 @@ BANNED_WORDS="$(
 
 [[ -z "$BANNED_WORDS" ]] && exit 0
 
+CWD="$(jq -r '.cwd // empty' <<<"$INPUT_JSON")"
+HAYSTACK="$(command_with_body_files "$command" "$CWD")"
+
 HITS=""
 while IFS= read -r word; do
   [[ -z "$word" ]] && continue
-  if grep -qF -- "$word" <<<"$command"; then
+  if grep -qF -- "$word" <<<"$HAYSTACK"; then
     HITS="${HITS}
   - ${word}"
   fi
@@ -62,14 +70,5 @@ REASON="🚫 投稿しようとしている本文に pr-comment の禁止語が�
 
 いずれも実際に差し戻された決まり文句です。指摘の分類は見出し（\`## 🔴 必須対応\` / \`## 🟢 任意対応\`）で伝え、本文では言い直さないでください。免責が必要なら該当する指摘の直後に、その指摘だけを指す形で書き下ろしてください。"
 
-jq -n --arg reason "$REASON" '
-  {
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    },
-    systemMessage: $reason
-  }
-'
+emit_pretooluse_decision deny "$REASON"
 exit 0

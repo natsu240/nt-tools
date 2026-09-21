@@ -98,6 +98,12 @@ run_raw_case() {
 }
 
 # --- コメントに出典・相互参照 → 拒否 ---
+run_case deny "チケット番号" "$PLAIN/src/a.ts" '// DEMO-101 の対応'
+run_case deny "チケット番号（docblock の途中行）" "$PLAIN/src/a.php" '/**
+ * 入力モーダルの入力値
+ *
+ * DEMO-101 / DEMO-102。
+ */'
 run_case deny "GitHub Issue の URL" "$PLAIN/src/a.vue" '// 見た目は https://github.com/natsu240/sample-app/issues/12 に合わせる'
 run_case deny "Google Sheets の URL" "$PLAIN/src/a.ts" '// 詳細は https://docs.google.com/spreadsheets/d/abc/edit を見ろ'
 run_case deny "GitHub PR の URL" "$PLAIN/src/a.scss" '/* https://github.com/natsu240/sample-app/pull/34 */'
@@ -129,7 +135,13 @@ run_case pass "技術根拠（過去形を含むが経緯ではない）" "$PLAI
 run_case pass "技術根拠（ライブラリの挙動）" "$PLAIN/bin/b.sh" '# grep をパイプの終端に置くと pipefail 下で上流が SIGPIPE で死ぬため here-string で渡す'
 run_case pass "現在の制約を語る説明" "$PLAIN/src/b.php" '// Blade の {{ }} は改行が消えるため nl2br で <br> 化してから流し込む'
 run_case pass "将来の可能性（課題ではない）" "$PLAIN/src/b.ts" '// 将来的に件数が増えてもページングで対応できる'
+run_case pass "規格名（SHA-256）" "$PLAIN/src/a.ts" '// SHA-256 でハッシュ化する'
+run_case pass "規格名（RFC-7231）" "$PLAIN/src/a.ts" '// RFC-7231 の定義に従う'
+run_case pass "規格名（ISO-8601）" "$PLAIN/src/a.php" '// ISO-8601 形式で保存する'
+run_case pass "脆弱性番号（CVE-2024-1234）" "$PLAIN/src/a.ts" '// CVE-2024-1234 の対策で追加'
+run_case pass "文字コード（UTF-8）" "$PLAIN/src/a.php" '// UTF-8 で読み込む'
 run_case pass "コメントのない普通のコード" "$PLAIN/src/a.ts" 'const limit = 255;'
+run_case pass "コメント以外の行にチケット番号が出るだけ" "$PLAIN/src/a.ts" 'const ticketUrl = "DEMO-101";'
 run_case pass "実装契約を書いた普通のコメント" "$PLAIN/src/a.ts" '// link.click() が例外を投げても revokeObjectURL がスキップされないよう try/finally で保護'
 run_case pass "Markdown（見出しをコメントとして拾わない）" "$PLAIN/docs/a.md" '# 以前は別の実装だった'
 run_case pass "対象外の拡張子" "$PLAIN/docs/a.txt" '# 以前は別の実装だった'
@@ -273,12 +285,13 @@ run_approval_case deny-multi "別セッションでは通さない" "$(jq -nc --
 run_raw_case deny-multi "session_id が無ければ2度目も止める" "$(jq -nc --arg f "$PLAIN/bin/approve3.sh" '{tool_name: "Edit", tool_input: {file_path: $f, old_string: "a=1", new_string: "# 足した説明。\n# もう1行の説明。\na=1"}}')"
 run_raw_case deny-multi "session_id が無ければ何度でも止める" "$(jq -nc --arg f "$PLAIN/bin/approve3.sh" '{tool_name: "Edit", tool_input: {file_path: $f, old_string: "a=1", new_string: "# 足した説明。\n# もう1行の説明。\na=1"}}')"
 
-# --- Write は既存ファイルの上書きだけ対象にする ---
+# --- Write は新規作成も対象にする ---
 mkdir -p "$PLAIN/bin"
 printf '%s\n' '# 既存の説明。' 'a=1' > "$PLAIN/bin/overwrite.sh"
 run_raw_case deny-multi "既存ファイルの上書きで2行になる" "$(jq -nc --arg f "$PLAIN/bin/overwrite.sh" '{tool_name: "Write", tool_input: {file_path: $f, content: "# 既存の説明。\n# 足した説明。\na=1\n"}}')"
 run_raw_case pass "既存ファイルの上書きで増えない" "$(jq -nc --arg f "$PLAIN/bin/overwrite.sh" '{tool_name: "Write", tool_input: {file_path: $f, content: "# 書き換えた説明。\na=1\nb=2\n"}}')"
-run_raw_case pass "新規作成は2行でも対象外" "$(jq -nc --arg f "$PLAIN/bin/brand-new.sh" '{tool_name: "Write", tool_input: {file_path: $f, content: "# 新規ファイルの説明。\n# もう1行の説明。\na=1\n"}}')"
+run_raw_case deny-multi "新規作成の2行コメントも止める" "$(jq -nc --arg f "$PLAIN/bin/brand-new.sh" '{tool_name: "Write", tool_input: {file_path: $f, content: "# 新規ファイルの説明。\n# もう1行の説明。\na=1\n"}}')"
+run_raw_case pass "新規作成の1行コメントは通す" "$(jq -nc --arg f "$PLAIN/bin/brand-new2.sh" '{tool_name: "Write", tool_input: {file_path: $f, content: "# 新規ファイルの説明。\na=1\n"}}')"
 
 # --- 設定ファイルが壊れていたら検査ごと諦める（編集を止めない） ---
 printf '%s\n' '{ こわれた JSON' > "$CONFIGURED/project_notes/comment-guard.json"

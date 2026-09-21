@@ -22,6 +22,15 @@ source "${BASH_SOURCE[0]%/*}/lib-effective-cwd.sh"
 source "${BASH_SOURCE[0]%/*}/lib-worktree-enforcement.sh"
 
 WRITE_GIT_OP_RE="${GIT_CMD_HEAD}git[[:space:]]+(-C[[:space:]]+[^[:space:]]+[[:space:]]+)?(add|commit|push|rm|mv|reset|restore|clean|apply|cherry-pick|revert|stash)([[:space:]]|\$)"
+GIT_C_DIR_RE="${GIT_CMD_HEAD}git[[:space:]]+-C[[:space:]]+[^[:space:];&|)]+"
+
+# コマンドが `git -C <パス>` で操作先を明示していれば、そのパスを1行返す。クォートで囲まれていても拾う。
+git_c_dir() {
+  local command="$1" match
+  match="$(grep -oE "$GIT_C_DIR_RE" <<<"$(unquote_command "$command")" | head -1 || true)"
+  [[ -n "$match" ]] || return 1
+  printf '%s' "${match##*[[:space:]]}"
+}
 
 TARGET_DIR=""
 case "$TOOL_NAME" in
@@ -40,9 +49,13 @@ case "$TOOL_NAME" in
     if ! grep -qE "$WRITE_GIT_OP_RE" <<<"$stripped"; then
       exit 0
     fi
-    TARGET_DIR="$(jq -r '.cwd // empty' <<<"$INPUT_JSON")"
-    [[ -z "$TARGET_DIR" ]] && exit 0
-    TARGET_DIR="$(effective_cwd "$COMMAND" "$TARGET_DIR")"
+    if GIT_C_DIR="$(git_c_dir "$COMMAND")" && [[ -d "$GIT_C_DIR" ]]; then
+      TARGET_DIR="$GIT_C_DIR"
+    else
+      TARGET_DIR="$(jq -r '.cwd // empty' <<<"$INPUT_JSON")"
+      [[ -z "$TARGET_DIR" ]] && exit 0
+      TARGET_DIR="$(effective_cwd "$COMMAND" "$TARGET_DIR")"
+    fi
     ;;
   *)
     exit 0

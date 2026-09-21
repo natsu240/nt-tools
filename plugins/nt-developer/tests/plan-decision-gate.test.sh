@@ -23,6 +23,10 @@ REPO="$(git -C "$TMP_ROOT/repo" rev-parse --show-toplevel)"
 CODE_PATH="$REPO/src/Foo.php"
 mkdir -p "$REPO/src"
 
+printf '%s\n' 'project_notes/' '.env' >"$REPO/.gitignore"
+IGNORED_PATH="$REPO/project_notes/dev-env.md"
+mkdir -p "$REPO/project_notes"
+
 write_plan() {
   local path=$1 body=$2
   printf '%s' "$body" >"$path"
@@ -192,6 +196,13 @@ run_gate pass "確認テスト: 合格が無い状態での計画書への Edit"
 run_gate pass "確認テスト: 合格が無い状態での計画書への Write" "$(write_payload "$REPO/plans/進行中/other/計画.md" "$REPO")"
 run_gate deny "plans を名前に含むだけのコードファイルへの Edit" "$(file_payload "$REPO/src/plans.php" "$REPO")"
 
+# --- gitignore 対象のファイル → 素通し / 管理下のファイルは従来どおり止まる ---
+run_gate pass "gitignore 対象のファイルへの Edit" "$(file_payload "$IGNORED_PATH" "$REPO")"
+run_gate pass "gitignore 対象のファイルへの Write" "$(write_payload "$IGNORED_PATH" "$REPO")"
+run_gate pass "gitignore 対象の .env への Edit" "$(file_payload "$REPO/.env" "$REPO")"
+run_gate deny "git の管理下にあるコードファイルへの Edit" "$(file_payload "$CODE_PATH" "$REPO")"
+run_gate deny "git の管理下にある .gitignore 自身への Edit" "$(file_payload "$REPO/.gitignore" "$REPO")"
+
 # --- 計画を Issue の description へ書き込むだけの Bash → 素通し ---
 record_plan "$NO_DECIDED_SECTION_PLAN"
 run_gate pass "description の書き込み（パスをクォートしない）" "$(bash_payload "gh issue edit 720 --body-file $REPO/body.md" "$REPO")"
@@ -205,6 +216,14 @@ run_gate deny "description の書き込みに他のコマンドを連結" "$(bas
 run_gate deny "description の書き込みにコマンド置換を含める" "$(bash_payload 'gh issue edit 720 --body-file "$(mktemp)"' "$REPO")"
 run_gate deny "description の書き込みを装ったリダイレクト" "$(bash_payload "gh issue edit 720 --body-file $REPO/body.md > $REPO/out.txt" "$REPO")"
 run_gate deny "通常のコミット" "$(bash_payload 'git commit -m plan' "$REPO")"
+
+# --- スクラッチパッドだけを触る Bash → 素通し（クォート・変数で組んでも落とさない） ---
+run_gate pass "スクラッチパッドへのコピー" "$(bash_payload 'cp a.txt /tmp/claude-1001/proj/sess/scratchpad/a.txt' "$REPO")"
+run_gate pass "スクラッチパッドのパスをクォートで囲む" "$(bash_payload 'cp a.txt "/tmp/claude-1001/proj/sess/scratchpad/a.txt"' "$REPO")"
+run_gate pass "スクラッチパッドのパスを変数に入れる" "$(bash_payload 'DEST=/tmp/claude-1001/proj/sess/scratchpad; cp a.txt "$DEST/a.txt"' "$REPO")"
+run_gate pass "スクラッチパッドのパスを --flag=<パス> で渡す" "$(bash_payload 'tee --output=/tmp/claude-1001/proj/sess/scratchpad/a.txt' "$REPO")"
+run_gate deny "クォートで囲んでもリポジトリ配下なら止める" "$(bash_payload "cp a.txt \"$REPO/src/a.txt\"" "$REPO")"
+run_gate deny "変数に入れてもリポジトリ配下なら止める" "$(bash_payload "DEST=$REPO/src; cp a.txt \"\$DEST/a.txt\"" "$REPO")"
 
 if [[ "$failures" -gt 0 ]]; then
   printf '\nplan-decision-gate: %d/%d 件が期待と違いました\n' "$failures" "$total"

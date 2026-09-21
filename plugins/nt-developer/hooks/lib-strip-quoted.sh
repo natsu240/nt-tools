@@ -54,3 +54,9 @@ strip_quoted() {
     }
   '
 }
+
+# 標準出力へ、クォート記号だけを外した文字列を返す（囲まれていた中身は残す）。
+unquote_command() {
+  local out="${1//\"/}"
+  printf '%s' "${out//\'/}"
+}

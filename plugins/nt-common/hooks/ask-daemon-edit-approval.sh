@@ -6,6 +6,9 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 INPUT_JSON="$(cat)"
 
 TOOL_NAME="$(jq -r '.tool_name // empty' <<<"$INPUT_JSON")"
@@ -36,16 +39,7 @@ is_daemon_config() {
 ask_for_approval() {
   local path="$1"
   local reason="⏰ ${path} は起動し続ける仕組みの設定です。書き換えると本人が操作しなくても新しい内容で動き続けます。変更してよいか、どこをどう変えるかをユーザーに提示して確認してください。"
-  jq -n --arg reason "$reason" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "ask",
-        permissionDecisionReason: $reason
-      },
-      systemMessage: $reason
-    }
-  '
+  emit_pretooluse_decision ask "$reason"
   exit 0
 }
 

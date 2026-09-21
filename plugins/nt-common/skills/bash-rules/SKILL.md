@@ -8,7 +8,7 @@ effort: low
 
 違反の主要パターンは同梱の hook で block される。
 
-- **ファイル読み書き・検索・編集は Bash より専用ツール優先**。`cat`/`grep`/`sed`/`find` ではなく `Read` / `Write` / `Edit` / `Grep` ツールを使え。`grep -r` / `sed -n '100,200p' file` のような形は禁止。
+- **ファイル読み書き・検索・編集は Bash より専用ツール優先**。`cat`/`grep`/`sed`/`find` ではなく `Read` / `Write` / `Edit` / `Grep` ツールを使え。`sed -n '100,200p' file` のようにファイルの中身の行を取り出す形は禁止。どこに何件あるかだけを返す `grep -l` / `-L` / `-c` / `-r` / `-R` は使ってよい。
 - **ヒアドキュメント（`cat > file <<EOF` / `tee file <<EOF`）でファイルを作るな**。新規ファイルは `Write` ツール、追記は `Edit` ツール。
 - **`/tmp` 以下にスクリプトファイル（.py/.js/.sh 等）を作るな**。`/tmp` は `/private/tmp` の symlink で再起動までゴミが残る。一時集計は `jq` / `awk` の one-liner で宣言的に書け。
 - **複合チェーン（`|`・`&&`・`||`・`>`）は読み取りなら自由に使え**。同梱の hook が読み取り専用コマンド（find/grep/jq/cat 等、パイプ・複合含む）を `permissionDecision: allow` で自動許可するので、`find … | jq …` のような読み取り複合は1発で書いてよい（許可プロンプトは出ない）。書き込み・削除・新規作成・状態変更（`>`/rm/mv/mkdir/tee/git add/claude mcp add 等）を含む複合は通常の許可確認が入る（block ではない）ので、必要なら分割を検討しろ。ただし削除対象が全て `/tmp` / `/private/tmp` 配下の `rm` / `rmdir` / `unlink` だけで構成される場合は自動許可される（`/tmp` そのもの・ルートを対象にしたものは除く）。

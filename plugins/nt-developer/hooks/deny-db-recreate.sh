@@ -6,6 +6,9 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 INPUT_JSON="$(cat)"
 
 TOOL_NAME="$(jq -r '.tool_name // empty' <<<"$INPUT_JSON")"
@@ -30,16 +33,7 @@ DESTRUCTIVE_SQL_RE='(TRUNCATE[[:space:]]+|DROP[[:space:]]+(TABLE|DATABASE|SCHEMA
 
 respond_deny() {
   local reason="$1"
-  jq -n --arg reason "$reason" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: $reason
-      },
-      systemMessage: $reason
-    }
-  '
+  emit_pretooluse_decision deny "$reason"
   exit 0
 }
 
