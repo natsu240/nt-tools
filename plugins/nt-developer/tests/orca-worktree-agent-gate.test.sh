@@ -45,6 +45,10 @@ run_case pass "--agent と --prompt が揃っている" \
   'orca worktree create --repo path:/tmp/repo --name issue-1 --base-branch main --issue 1 --agent claude --prompt "実装しろ" --json'
 run_case pass "= 区切りで揃っている" \
   'orca worktree create --repo path:/tmp/repo --name issue-1 --agent=claude --prompt="実装しろ"'
+run_case pass "--help でヘルプを読むだけ" 'orca worktree create --help'
+run_case pass "-h でヘルプを読むだけ" 'orca worktree create -h'
+run_case pass "オプションを付けた状態で --help" \
+  'orca worktree create --repo path:/tmp/repo --help'
 run_case pass "worktree list" 'orca worktree list --json'
 run_case pass "worktree rm" 'orca worktree rm --worktree path:/tmp/wt --json'
 run_case pass "terminal create" \

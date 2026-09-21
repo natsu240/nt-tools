@@ -3,6 +3,9 @@
 #
 # **対象を拡張子で絞っている範囲を広げるな。** .gitignore / .env / .claude/* のような通常運用のドットファイルを巻き込む。
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 input=$(cat)
 tool_name=$(printf '%s' "$input" | jq -r '.tool_name // ""')
 
@@ -62,16 +65,7 @@ block_path() {
     "     - \$TMPDIR / /tmp / /private/tmp 配下" \
     "   ドット隠しファイル + コード系拡張子のパターンが project root 配下の" \
     "   一時 dump として頻発するため block している。")
-  jq -n --arg msg "$message" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: $msg
-      },
-      systemMessage: $msg
-    }
-  '
+  emit_pretooluse_decision deny "$message"
   exit 0
 }
 

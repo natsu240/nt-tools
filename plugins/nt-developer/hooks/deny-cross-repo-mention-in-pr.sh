@@ -3,6 +3,11 @@
 #
 # 相手リポジトリの timeline に cross-reference event が残り、本文を後から編集してもevent は消えない（GitHub の仕様。API でも削除不可）。
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+# shellcheck source=lib-body-file-content.sh
+source "${BASH_SOURCE[0]%/*}/lib-body-file-content.sh"
+
 input=$(cat)
 command=$(printf '%s' "$input" | jq -r '.tool_input.command // ""')
 
@@ -15,11 +20,14 @@ if ! printf '%s' "$command" | grep -qE '\bgh (pr|issue) (create|edit|comment)\b'
   exit 0
 fi
 
+cwd=$(printf '%s' "$input" | jq -r '.cwd // ""')
+haystack=$(command_with_body_files "$command" "$cwd")
+
 # パターン 1: owner/repo#N（例: natsu240/sample-app#221）
-matched_slug=$(printf '%s' "$command" | grep -oE '[A-Za-z0-9._-]+/[A-Za-z0-9._-]+#[0-9]+' | head -3)
+matched_slug=$(grep -oE '[A-Za-z0-9._-]+/[A-Za-z0-9._-]+#[0-9]+' <<<"$haystack" | head -3)
 
 # パターン 2: https://github.com/owner/repo/(pull|issues)/N
-matched_url=$(printf '%s' "$command" | grep -oE 'github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/(pull|issues)/[0-9]+' | head -3)
+matched_url=$(grep -oE 'github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/(pull|issues)/[0-9]+' <<<"$haystack" | head -3)
 
 if [ -z "$matched_slug" ] && [ -z "$matched_url" ]; then
   exit 0
@@ -45,14 +53,5 @@ ${matched_url}
 このメッセージをユーザーに提示し明示の許可を取ってから実行してください。
 EOF
 )
-jq -n --arg msg "$reason" '
-  {
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $msg
-    },
-    systemMessage: $msg
-  }
-'
+emit_pretooluse_decision deny "$reason"
 exit 0

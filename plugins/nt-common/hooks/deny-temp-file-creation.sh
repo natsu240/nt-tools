@@ -2,6 +2,9 @@
 # Write ツールでの「一時的」を示唆するファイル名作成を block する PreToolUse hook。
 # プレフィックス test- / tmp- / temp- / scratch- / sandbox- / debug- / tryout- で始まるbasename、および先頭がアンダースコアの basename（例: _W3LayoutCheckTest.php のような「正式なテストスイートに組み込む意図のない使い捨て検証ファイル」の命名慣習）を block する。
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 input=$(cat)
 file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // ""')
 
@@ -25,16 +28,7 @@ if printf '%s' "$basename" | grep -qE '^(test|tmp|temp|scratch|sandbox|debug|try
   - どうしても一時的な実験が必要なら、ユーザーに「これ作っていい？」と確認してから命名
 EOF
 )
-  jq -n --arg msg "$reason" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: $msg
-      },
-      systemMessage: $msg
-    }
-  '
+  emit_pretooluse_decision deny "$reason"
 fi
 
 exit 0

@@ -51,17 +51,39 @@ is_review_cache_path() {
   [[ -n "${HOME:-}" && "$path" == "${HOME}/.claude/cache/code-review/"* ]]
 }
 
+# コマンド文字列の中の `NAME=<値>` を、後続の `$NAME` / `${NAME}` へ展開した文字列を返す。
+expand_assigned_values() {
+  local text="$1" assign name value
+  while IFS= read -r assign; do
+    [[ -n "$assign" ]] || continue
+    assign="${assign##*[[:space:];&|(]}"
+    name="${assign%%=*}"
+    value="${assign#*=}"
+    [[ -n "$name" && -n "$value" ]] || continue
+    text="${text//\$\{$name\}/$value}"
+    text="${text//\$$name/$value}"
+  done < <(grep -oE '(^|[[:space:];&|(])[A-Za-z_][A-Za-z0-9_]*=[^[:space:];&|)]+' <<<"$text" || true)
+  printf '%s' "$text"
+}
+
+# パスはクォートを外し変数を展開してから拾う。strip_quoted で中身を落とすと、クォートで囲んだパス・変数に入れたパスが判定から丸ごと落ちる。
 is_scratch_path_only_command() {
   local command="$1"
-  local stripped
-  stripped="$(strip_quoted "$command")"
+  local expanded
+  expanded="$(expand_assigned_values "$(unquote_command "$command")")"
 
+  # 改行は空白へ均す。read -ra は1行目しかトークンに割らない。
   local -a tokens
-  read -ra tokens <<<"$stripped"
+  read -ra tokens <<<"${expanded//$'\n'/ }"
 
   local found_path=0
   local tok
   for tok in "${tokens[@]}"; do
+    # `NAME=<パス>` / `--flag=<パス>` は右辺がパスなので、値の側を判定に載せる。
+    case "$tok" in
+      *=*) tok="${tok#*=}" ;;
+    esac
+
     if is_tool_output_path "$tok"; then
       found_path=1
       continue

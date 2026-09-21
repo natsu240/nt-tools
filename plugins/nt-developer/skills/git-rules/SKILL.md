@@ -10,11 +10,12 @@ effort: low
 - **ワークツリーは必ず `orca worktree create` で作れ。`git worktree add` を直接叩くな**（同梱の hook が止める）。生の git で作るとフォルダだけができて Claude 自身は元のディレクトリで動き続けるため、Orca に出るカードと実際に動いているセッションがズレる。
 
   ```
-  orca worktree create --repo path:<リポジトリの絶対パス> --name <名前> \
+  orca worktree create --repo id:<リポジトリの id> --name <名前> \
     --base-branch <base> --issue <Issue 番号> --agent claude --prompt "<引き継ぎ内容>" --json
   ```
 
-  - `--name` がそのままブランチ名になり、`~/pj/worktrees/<リポジトリ名>/<名前>` に作られる。
+  - **`--repo` は必ず `id:<リポジトリの id>` で指定しろ。`path:` を使うな。** WSL では Orca がリポジトリを Windows 側の UNC パスで登録するため、`path:` は `repo_not_found` で弾かれる。id は `orca repo list --json | jq -r '.result.repos[] | "\(.id)\t\(.displayName)"'` で引け。
+  - `--name` がそのままブランチ名になり、`~/pj/workspaces/<リポジトリ名>/<名前>` に作られる。
   - **GitHub Issue のある作業では `--issue <番号>` を必ず付けろ。** Orca のカードが Issue に紐付く。`gh issue develop` は使うな（本体にブランチを切ることになる）。
   - `--agent claude --prompt` を付けるとそのワークツリーの中で Claude が起動して作業を引き継ぐ。**呼び出し元のセッションは自分で実装せず、引き継ぎ内容をプロンプトに書いて渡せ**（両方揃っていなければ同梱の hook が止める）。
   - **`--base-branch` と `--name` に渡す値はリポジトリごとに違う。そのリポジトリの `project_notes/git.md`（無ければ `CLAUDE.md`）を読め。書いていなければユーザーに確認し、確認した内容を `project_notes/git.md` に追記しろ。**
@@ -35,7 +36,7 @@ effort: low
 
 1. 雛形（`${CLAUDE_SKILL_DIR}/templates/orca-worktree-setup.sh`）を対象リポジトリの `scripts/orca-worktree-setup.sh` としてコピーし、`COPY_FROM_MAIN` と `INSTALL_TARGETS` をそのリポジトリの実態に合わせて書き換えてコミットしろ。
 2. Orca アプリでそのリポジトリの設定を開き、セットアップスクリプトの欄に `bash scripts/orca-worktree-setup.sh` の1行だけを入れろ。**設定欄に長いコマンド列を直接書くな。** 設定欄の中身は Git 管理外なので、実体をリポジトリ側に置かないと変更を追跡できない。
-3. `orca repo show --repo path:<絶対パス> --json` の `hookSettings.scripts.setup` に値が入ったことを確認しろ。`setupRunPolicy` が `run-by-default` なら以降はワークツリー作成時に自動で走る（走らせたいことを明示するなら `orca worktree create` に `--setup run` を付けろ）。
+3. `orca repo show --repo id:<リポジトリの id> --json` の `hookSettings.scripts.setup` に値が入ったことを確認しろ。`setupRunPolicy` が `run-by-default` なら以降はワークツリー作成時に自動で走る（走らせたいことを明示するなら `orca worktree create` に `--setup run` を付けろ）。
 
 登録済みかどうかを一覧で見るには次を叩け。
 

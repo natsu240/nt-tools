@@ -44,6 +44,7 @@ case "$TOOL_NAME" in
     is_scratch_path "$FILE_PATH" && exit 0
     is_plan_file_path "$FILE_PATH" && exit 0
     TARGET_DIR="$(nearest_existing_dir "$FILE_PATH")"
+    git -C "$TARGET_DIR" check-ignore -q -- "$FILE_PATH" 2>/dev/null && exit 0
     ;;
   Skill)
     SKILL_NAME="$(jq -r '.tool_input.skill // empty' <<<"$INPUT_JSON")"

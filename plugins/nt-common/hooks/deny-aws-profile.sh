@@ -7,6 +7,9 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 INPUT_JSON="$(cat)"
 
 TOOL_NAME="$(jq -r '.tool_name // empty' <<<"$INPUT_JSON")"
@@ -34,16 +37,7 @@ if grep -qE 'aws[[:space:]]+(--version|help|configure)([[:space:]]|$)' <<<"$stri
 fi
 
 deny() {
-  jq -n --arg reason "$1" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: $reason
-      },
-      systemMessage: $reason
-    }
-  '
+  emit_pretooluse_decision deny "$1"
   exit 0
 }
 

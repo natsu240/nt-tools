@@ -4,6 +4,9 @@
 # Write で命名すると連番が固定され、他の開発者と作業日が被ったとき衝突する。
 # artisan は microsecond 精度のタイムスタンプを生成するので衝突しない。
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 input=$(cat)
 file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // ""')
 
@@ -25,16 +28,7 @@ Laravel が microsecond 精度のタイムスタンプ付きで空ファイル�
 そのファイルを Edit ツールで開いて中身を埋めること。
 EOF
 )
-  jq -n --arg msg "$reason" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: $msg
-      },
-      systemMessage: $msg
-    }
-  '
+  emit_pretooluse_decision deny "$reason"
 fi
 
 exit 0

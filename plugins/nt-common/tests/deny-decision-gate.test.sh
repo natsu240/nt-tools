@@ -33,9 +33,9 @@ run_case() {
     printf '    出力: %s\n' "$out"
     return
   fi
-  if [[ "$expected" == "deny" ]] && ! jq -e '.systemMessage == .hookSpecificOutput.permissionDecisionReason and (.systemMessage | length > 0)' >/dev/null 2>&1 <<<"$out"; then
+  if [[ "$expected" == "deny" || "$expected" == "ask" ]] && ! jq -e '.systemMessage == .hookSpecificOutput.permissionDecisionReason and .hookSpecificOutput.additionalContext == .hookSpecificOutput.permissionDecisionReason and (.systemMessage | length > 0)' >/dev/null 2>&1 <<<"$out"; then
     failures=$((failures + 1))
-    printf 'NG  理由が systemMessage に入っていない %s（%s）\n' "$label" "$hook"
+    printf 'NG  理由が systemMessage / additionalContext に入っていない %s（%s）\n' "$label" "$hook"
     printf '    出力: %s\n' "$out"
   fi
 }

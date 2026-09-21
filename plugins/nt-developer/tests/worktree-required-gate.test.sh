@@ -17,6 +17,9 @@ git -C "$MAIN_TREE" commit -q --allow-empty -m init
 WORKTREE="$TMP_ROOT/nt-tools-issue-1"
 git -C "$MAIN_TREE" worktree add -q -b issue-1 "$WORKTREE" >/dev/null 2>&1
 
+DOCS_WORKTREE="$TMP_ROOT/nt-tools-docs"
+git -C "$MAIN_TREE" worktree add -q --detach "$DOCS_WORKTREE" >/dev/null 2>&1
+
 LARAVEL_MAIN="$TMP_ROOT/sample-laravel-app"
 mkdir -p "$LARAVEL_MAIN/html"
 git -C "$LARAVEL_MAIN" init -q -b main
@@ -99,6 +102,13 @@ run_case deny "worktree から本体へ cd してからの git add" "$(bash_json
 run_case deny "本体を git -C で指定した git add" "$(bash_json "git -C $MAIN_TREE add plugins/a.sh" "$WORKTREE")"
 run_case deny "実在しないディレクトリへの cd（.cwd で判定する）" "$(bash_json "cd $TMP_ROOT/nowhere && git add plugins/a.sh" "$MAIN_TREE")"
 run_case pass "cd を文字列として書くだけ" "$(bash_json "gh pr comment 1 --body 'cd $WORKTREE してから git add しろ'" "$WORKTREE")"
+
+# --- --detach で切り出したワークツリーを git -C で指定する（README / CLAUDE.md の main 直 push の経路） ---
+run_case pass "本体から --detach のワークツリーを git -C で指定した git add" "$(bash_json "git -C $DOCS_WORKTREE add CLAUDE.md" "$MAIN_TREE")"
+run_case pass "パスをクォートで囲んだ git -C" "$(bash_json "git -C \"$DOCS_WORKTREE\" add CLAUDE.md" "$MAIN_TREE")"
+run_case pass "--detach のワークツリーからの git push" "$(bash_json "git -C $DOCS_WORKTREE push origin HEAD:main" "$MAIN_TREE")"
+run_case deny "本体を git -C で指定すればクォートしても止める" "$(bash_json "git -C \"$MAIN_TREE\" add CLAUDE.md" "$DOCS_WORKTREE")"
+run_case deny "実在しないパスを git -C で指定したら .cwd で判定する" "$(bash_json "git -C $TMP_ROOT/nowhere add CLAUDE.md" "$MAIN_TREE")"
 
 # --- Docker 前提のリポジトリは強制対象外 → 本体でも素通し ---
 run_case pass "Docker 前提リポジトリの本体での Edit" "$(edit_json "$LARAVEL_MAIN/html/a.php" "$LARAVEL_MAIN")"

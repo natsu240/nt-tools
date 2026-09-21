@@ -13,6 +13,8 @@ source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
 source "${BASH_SOURCE[0]%/*}/lib-ask-questions.sh"
 # shellcheck source=lib-plan-file-path.sh
 source "${BASH_SOURCE[0]%/*}/lib-plan-file-path.sh"
+# shellcheck source=lib-body-file-content.sh
+source "${BASH_SOURCE[0]%/*}/lib-body-file-content.sh"
 
 INPUT_JSON="$(cat)"
 
@@ -23,17 +25,6 @@ is_issue_body_command() {
   local command="$1"
   grep -qE '(^|[[:space:];&|])gh[[:space:]]+issue[[:space:]]+(edit|create)([[:space:]]|$)' <<<"$command" || return 1
   grep -qE '[[:space:]]--body(-file)?([[:space:]]|=|$)' <<<"$command"
-}
-
-# --body-file に渡されたパスの中身をコマンド文字列へ足す。
-append_body_files() {
-  local command="$1" haystack="$1" path paths
-  paths="$(grep -oE -- '--body-file[= ]+"?[^"[:space:]]+"?' <<<"$command" | sed -E 's/^--body-file[= ]+//; s/"//g' || true)"
-  while IFS= read -r path; do
-    [[ -n "$path" && -f "$path" ]] || continue
-    haystack+=$'\n'"$(cat "$path")"
-  done <<<"$paths"
-  printf '%s' "$haystack"
 }
 
 issue_body_before() {
@@ -57,7 +48,7 @@ case "$TOOL_NAME" in
   Bash)
     COMMAND="$(jq -r '.tool_input.command // empty' <<<"$INPUT_JSON")"
     is_issue_body_command "$COMMAND" || exit 0
-    HAYSTACK="$(append_body_files "$COMMAND")"
+    HAYSTACK="$(command_with_body_files "$COMMAND" "$(jq -r '.cwd // empty' <<<"$INPUT_JSON")")"
     BEFORE="$(issue_body_before "$COMMAND")"
     ;;
   Write)

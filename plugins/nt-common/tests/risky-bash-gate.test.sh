@@ -102,6 +102,17 @@ run_case block "実際に grep が対象にしているファイルは同じ区�
 run_case pass "クォート内の tail という語だけでは反応しない" \
   "gh issue create --title 'パイプ後段の tail を直す' --body x"
 
+# --- どこに何件あるかだけを返す grep は止めない ---
+run_case pass "grep -l は止めない" "grep -l foo $HOOK"
+run_case pass "grep -L は止めない" "grep -L foo $HOOK"
+run_case pass "grep -c は止めない" "grep -c foo $HOOK"
+run_case pass "grep -rl は止めない" "grep -rl foo $HOOK"
+run_case pass "grep --files-with-matches は止めない" "grep --files-with-matches foo $HOOK"
+run_case pass "grep --count は止めない" "grep --count foo $HOOK"
+run_case block "grep -n は内容の行を取り出すので止める" "grep -n foo $HOOK"
+run_case block "head は内容の行を取り出すので止める" "head -20 $HOOK"
+run_case block "sed -rn は grep ではないので止める" "sed -rn '1,5p' $HOOK"
+
 run_case block "他ブランチからのファイル展開" 'git checkout develop -- src/foo.php'
 run_case block "git restore --source" 'git restore --source origin/main src/foo.php'
 

@@ -3,21 +3,15 @@
 #
 # hook の allow は settings の deny ルールを override しない（deny が常に優先）。
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 input=$(cat)
 command=$(printf '%s' "$input" | jq -r '.tool_input.command // ""')
 [ -z "$command" ] && exit 0
 
 deny() {
-  jq -n --arg msg "$1" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: $msg
-      },
-      systemMessage: $msg
-    }
-  '
+  emit_pretooluse_decision deny "$1"
   exit 0
 }
 
@@ -179,7 +173,7 @@ is_tmp_cleanup_only() {
 }
 
 if [ "$write_detected" = "command" ] && is_tmp_cleanup_only "$unquoted"; then
-  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"/tmp 配下の一時ファイル削除 (auto-approved by gate-risky-bash)"}}'
+  emit_pretooluse_decision allow "/tmp 配下の一時ファイル削除 (auto-approved by gate-risky-bash)"
   exit 0
 fi
 
@@ -188,8 +182,16 @@ if [ -n "$write_detected" ]; then
   exit 0
 fi
 
-# ============ 小ファイルへの部分読み → block（Read 強制） ============明示パスの既存ファイル（すべて100KB未満）を grep/head/tail/sed/awk で部分読みするコマンドは拒否して Read ツールへ誘導する（CLAUDE.md「ファイルの読み方（強制）」と同基準）。
-# -r/-R 再帰検索・100KB以上のファイルを含むもの・ファイル引数なしのパイプ処理は対象外。`;`/`&&`/`||`/`|` の区間ごとに判定し、クォート内の語は $unquoted で除外する。
+# ============ 小ファイルへの部分読み → block（Read 強制） ============明示パスの既存ファイル（すべて100KB未満）から grep/head/tail/sed/awk で内容の行を取り出すコマンドは拒否して Read ツールへ誘導する（CLAUDE.md「ファイルの読み方（強制）」と同基準）。
+# どこに何件あるかだけを返す grep（-l/-L/-c/-r/-R 等）・100KB以上のファイルを含むもの・ファイル引数なしのパイプ処理は対象外。`;`/`&&`/`||`/`|` の区間ごとに判定し、クォート内の語は $unquoted で除外する。
+
+# ファイルの中身ではなく、どこに何件あるかだけを返す grep なら 0 を返す
+is_locate_only_grep() {
+  local segment="$1"
+  printf '%s' "$segment" | grep -qE '(^|[[:space:]/;&|])grep([[:space:]]|$)' || return 1
+  printf '%s' "$segment" | grep -qE '(^|[[:space:]])(--recursive|--files-with-matches|--files-without-match|--count|-[a-zA-Z]*[rRlLc])'
+}
+
 if printf '%s' "$unquoted" | grep -qE '(^|[[:space:]/;&|])(grep|head|tail|sed|awk)([[:space:]]|$)'; then
   hook_cwd=$(printf '%s' "$input" | jq -r '.cwd // ""')
   [ -n "$hook_cwd" ] && cd "$hook_cwd" 2>/dev/null
@@ -205,7 +207,7 @@ if printf '%s' "$unquoted" | grep -qE '(^|[[:space:]/;&|])(grep|head|tail|sed|aw
 
   while IFS= read -r segment; do
     printf '%s' "$segment" | grep -qE '(^|[[:space:]/;&|])(grep|head|tail|sed|awk)([[:space:]]|$)' || continue
-    printf '%s' "$segment" | grep -qE '(^|[[:space:]])(--recursive|-[a-zA-Z]*[rR])' && continue
+    is_locate_only_grep "$segment" && continue
 
     set -f
     for w in $segment; do
@@ -233,11 +235,11 @@ if printf '%s' "$unquoted" | grep -qE '(^|[[:space:]/;&|])(grep|head|tail|sed|aw
     if [ -n "$already_read_files" ]; then
       deny "🚫 ${already_read_files} は既にこのセッションで Read 済みだ。行番号は直前の Read 出力に付いている。読み直すな。"
     else
-      deny "🚫 ${small_files} を grep/head/tail/sed/awk で部分読みするな。Read ツールで全文読め（複数あるなら1つずつ Read しろ）。単一ファイル内の検索・行番号引き当ては Grep ツールでもできる。100KB以上のログ/JSONL への grep と -r 再帰検索は許可される。"
+      deny "🚫 ${small_files} から grep/head/tail/sed/awk で内容の行を取り出すな。Read ツールで全文読め（複数あるなら1つずつ Read しろ）。単一ファイル内の検索・行番号引き当ては Grep ツールでもできる。どこに何件あるかだけを知りたいなら grep の -l / -L / -c / -r / -R は許可される。100KB以上のログ/JSONL への grep も許可される。"
     fi
   fi
 fi
 
 # ============ 読み取り専用 → 自動許可（パイプ・複合含む、プロンプトなし） ============
-printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"read-only command (auto-approved by gate-risky-bash)"}}'
+emit_pretooluse_decision allow "read-only command (auto-approved by gate-risky-bash)"
 exit 0

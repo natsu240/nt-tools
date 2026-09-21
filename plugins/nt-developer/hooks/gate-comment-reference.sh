@@ -105,6 +105,9 @@ for pat in ${EXCLUDE_PATHS+"${EXCLUDE_PATHS[@]}"}; do
   fi
 done
 
+# チケット番号らしき形（大文字2〜6字 + ハイフン + 数字2桁以上）に一致してしまう規格名の接頭辞。ここに載っていれば通す。
+KNOWN_PREFIXES='SHA|ISO|IEC|RFC|AES|RSA|UTF|GMT|UTC|RGB|RGBA|HSL|HTTP|HTTPS|TLS|SSL|MD|CVE|ANSI|ECMA|WCAG|IPV|UUID|BASE'
+
 SPEC_URL_PATTERN='(atlassian\.net|docs\.google\.com/spreadsheets|github\.com/[^[:space:]]+/(issues|pull)/)'
 QA_PATTERN='QA[[:space:]]*#?[0-9]+'
 DB_VALUE_PATTERN='(\bvarchar\b|\bmax:[0-9]+)'
@@ -158,12 +161,30 @@ if [[ -n "$WRAPPED_LINE" ]]; then
   exit 0
 fi
 
+# チケット番号らしき文字列を1つずつ取り出し、規格名の接頭辞を除いて残ったものだけを検出扱いにする。
+find_ticket_id() {
+  local line="$1" token prefix
+  while IFS= read -r token; do
+    [[ -z "$token" ]] && continue
+    prefix="${token%%-*}"
+    if grep -qE "^(${KNOWN_PREFIXES})\$" <<<"$prefix"; then
+      continue
+    fi
+    printf '%s' "$token"
+    return 0
+  done < <(LC_ALL=C grep -oE '\b[A-Z]{2,6}-[0-9]{2,}\b' <<<"$line" || true)
+  return 1
+}
+
 while IFS= read -r line; do
   if ! LC_ALL=C grep -qE "^[[:space:]]*${COMMENT_HEAD}" <<<"$line"; then
     continue
   fi
 
-  if token="$(LC_ALL=C grep -oE "$SPEC_URL_PATTERN" <<<"$line" | head -1)" && [[ -n "$token" ]]; then
+  if token="$(find_ticket_id "$line")"; then
+    HIT_KIND="チケット番号らしき文字列"
+    HIT_TOKEN="$token"
+  elif token="$(LC_ALL=C grep -oE "$SPEC_URL_PATTERN" <<<"$line" | head -1)" && [[ -n "$token" ]]; then
     HIT_KIND="仕様ツールの URL"
     HIT_TOKEN="$token"
   elif token="$(LC_ALL=C grep -oE "$QA_PATTERN" <<<"$line" | head -1)" && [[ -n "$token" ]]; then
@@ -244,9 +265,8 @@ if [[ -z "$HIT_KIND" ]]; then
       fi
       ;;
     Write)
-      # 新規作成は対象外。0 行からの増加になり、コメントを持つファイルを1つも作れなくなる。
+      HAS_BASELINE=1
       if [[ -f "$FILE_PATH" ]]; then
-        HAS_BASELINE=1
         BASELINE_TEXT="$(cat "$FILE_PATH")"
       fi
       ;;

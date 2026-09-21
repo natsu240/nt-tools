@@ -74,16 +74,7 @@ if [ -n "$untracked_secret_paths" ]; then
     "🚫 シークレットファイルを git add しようとしている: ${untracked_secret_paths}" \
     "   対象パターン: .env / .env.<env> / credentials.{json,yml,yaml} / *.pem / id_rsa / id_dsa / id_ecdsa / id_ed25519 / .pgpass / secrets.{yml,yaml}" \
     "   .env.example と git 追跡済みファイルは除外対象。本当に必要なら自分のターミナルで git add してください。")
-  jq -n --arg msg "$reason" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: $msg
-      },
-      systemMessage: $msg
-    }
-  '
+  emit_pretooluse_decision deny "$reason"
   exit 0
 fi
 

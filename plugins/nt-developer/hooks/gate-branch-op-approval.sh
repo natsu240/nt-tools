@@ -8,6 +8,9 @@
 
 set -euo pipefail
 
+# shellcheck source=lib-emit-decision.sh
+source "${BASH_SOURCE[0]%/*}/lib-emit-decision.sh"
+
 INPUT_JSON="$(cat)"
 
 TOOL_NAME="$(jq -r '.tool_name // empty' <<<"$INPUT_JSON")"
@@ -46,16 +49,7 @@ HOOK_CWD="$(jq -r '.cwd // empty' <<<"$INPUT_JSON")"
 respond() {
   local decision="$1"
   local reason="$2"
-  jq -n --arg decision "$decision" --arg reason "$reason" '
-    {
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: $decision,
-        permissionDecisionReason: $reason
-      },
-      systemMessage: $reason
-    }
-  '
+  emit_pretooluse_decision "$decision" "$reason"
   exit 0
 }
 
